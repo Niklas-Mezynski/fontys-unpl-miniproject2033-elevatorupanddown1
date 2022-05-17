@@ -6,7 +6,7 @@ TARGET=$(BINDIR)/manager
 
 DEP=$(INCDIR)/manager.h
 
-OBJECTS=$(BUILDDIR)/manager.o
+OBJECTS=$(BUILDDIR)/manager.o $(BUILDDIR)/main.o
 
 CC=gcc
 CFLAGS=-I.
