@@ -27,6 +27,6 @@ struct dataPacket
     MessageType mType;
     SenderType sType;
     char mBuffer[BUFFER_SIZE];
-}
+};
 
 #endif
