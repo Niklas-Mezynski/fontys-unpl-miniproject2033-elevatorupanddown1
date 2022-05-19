@@ -4,9 +4,9 @@ SRCDIR=src
 INCDIR=inc
 TARGET=$(BINDIR)/manager
 
-DEP=$(INCDIR)/manager.h
+DEP=$(INCDIR)/manager.h $(INCDIR)/elevator.h
 
-OBJECTS=$(BUILDDIR)/manager.o $(BUILDDIR)/main.o
+OBJECTS=$(BUILDDIR)/manager.o $(BUILDDIR)/elevator.o $(BUILDDIR)/main.o
 
 CC=gcc
 CFLAGS=-I.
