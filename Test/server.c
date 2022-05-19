@@ -87,7 +87,7 @@ int main(void)
     socket_t sock1, sock2, sock3;
     int i, ready, sock_max, max = -1;
     int client_sock[FD_SETSIZE];
-    fd_set gesamt_sock, lese_sock;
+    fd_set general_sock, read_sock;
     char *buffer = (char *)malloc(BUF);
     sock_max = sock1 = create_socket(AF_INET, SOCK_STREAM, 0);
     bind_socket(&sock1, INADDR_ANY, 15000);
@@ -95,17 +95,17 @@ int main(void)
 
     for (i = 0; i < FD_SETSIZE; i++)
         client_sock[i] = -1;
-    FD_ZERO(&gesamt_sock);
-    FD_SET(sock1, &gesamt_sock);
+    FD_ZERO(&general_sock);
+    FD_SET(sock1, &general_sock);
     for (;;)
     {
         /* Immer aktualisieren */
-        lese_sock = gesamt_sock;
+        read_sock = general_sock;
         /* Hier wird auf die Ankunft von Daten oder
          * neuer Verbindungen von Clients gewartet */
-        ready = select(sock_max + 1, &lese_sock, NULL, NULL, NULL);
+        ready = select(sock_max + 1, &read_sock, NULL, NULL, NULL);
         /* Eine neue Clientverbindung ... ? */
-        if (FD_ISSET(sock1, &lese_sock))
+        if (FD_ISSET(sock1, &read_sock))
         {
             accept_socket(&sock1, &sock2);
             /* Freien Platz für (Socket-)Deskriptor
@@ -121,7 +121,7 @@ int main(void)
                 error_exit("Server überlastet – zu viele Clients");
             /* Den neuen (Socket-)Deskriptor zur
              * (Gesamt-)Menge hinzufügen */
-            FD_SET(sock2, &gesamt_sock);
+            FD_SET(sock2, &general_sock);
             /* select() benötigt die höchste
              * (Socket-)Deskriptor-Nummer */
             if (sock2 > sock_max)
@@ -141,8 +141,8 @@ int main(void)
         {
             if ((sock3 = client_sock[i]) < 0)
                 continue;
-            /* (Socket-)Deskriptor gesetzt ... */
-            if (FD_ISSET(sock3, &lese_sock))
+            /* (Socket-)Deskriptor gesetzt */
+            if (FD_ISSET(sock3, &read_sock))
             {
                 /* ... dann die Daten lesen */
                 TCP_recv(&sock3, buffer, BUF - 1);
@@ -154,7 +154,7 @@ int main(void)
                     // Socket schließen
                     close_socket(&sock3);
                     // aus Menge löschen
-                    FD_CLR(sock3, &gesamt_sock);
+                    FD_CLR(sock3, &general_sock);
                     client_sock[i] = -1; // auf -1 setzen
                     printf("Ein Client hat sich beendet\n");
                 }
