@@ -13,7 +13,7 @@ CFLAGS=-I.
 
 
 $(TARGET): $(OBJECTS)
-	$(CC) $^ -o $@
+	$(CC) -pthread $^ -o $@
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.c $(DEP)
 	$(CC) -I$(INCDIR) -c $< -o $@
