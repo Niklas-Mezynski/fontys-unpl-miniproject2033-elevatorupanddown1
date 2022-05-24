@@ -11,5 +11,5 @@
 
 int main(int argc, char const *argv[])
 {
-    initialzeElevators();
+    startManager();
 }

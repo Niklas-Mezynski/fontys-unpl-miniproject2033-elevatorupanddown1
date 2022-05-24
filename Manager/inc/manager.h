@@ -42,4 +42,15 @@ struct dataPacket
 */
 void initialzeElevators();
 
+/*
+    Sets everything up and starts the manager
+*/
+void startManager();
+
+/*
+    The thread function for the manager itself
+    Loops until the day is over and waits for events
+*/
+void *managerLoop();
+
 #endif

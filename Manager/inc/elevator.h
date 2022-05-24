@@ -14,9 +14,14 @@ typedef struct
     int id;
     double height;
     int nextTargetFloor;
-    guest** guestsInside;
+    guest **guestsInside;
 } elevator;
 
-void *start(void* e);
+/*
+    Starts the elevator (each thread is going to run that method)
+    Loops until the day is over and waits for events
+    - Argument(s): elevator: a pointer to the elevator struct of itself
+*/
+void *start(void *e);
 
 #endif

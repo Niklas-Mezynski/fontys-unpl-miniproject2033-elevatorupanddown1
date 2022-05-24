@@ -10,13 +10,30 @@
 #include "elevator.h"
 
 elevator *elevators[NO_ELEVATORS];
-pthread_t threads[NO_ELEVATORS];
+pthread_t elevator_threads[NO_ELEVATORS];
+pthread_t manager_thread;
+
+void startManager()
+{
+    // Start the elevators (and it's threads)
+    initialzeElevators();
+
+    // Start the manager thread
+    pthread_create(&manager_thread, NULL, managerLoop, NULL);
+
+    // Wait for the elevator threads to finish
+    for (int i = 0; i < NO_ELEVATORS; i++)
+    {
+        pthread_join(elevator_threads[i], NULL);
+    }
+    // Wait for the manager thread
+    pthread_join(manager_thread, NULL);
+}
 
 void initialzeElevators()
 {
-    int i;
-    // Create the elevator structs and store them in the output array
-    for (i = 0; i < NO_ELEVATORS; i++)
+    // Create the elevator structs and store them in the elevators array
+    for (int i = 0; i < NO_ELEVATORS; i++)
     {
         elevators[i] = (elevator *)malloc(sizeof(elevator));
         elevators[i]->id = i;
@@ -25,11 +42,10 @@ void initialzeElevators()
         elevators[i]->guestsInside = (guest **)malloc(MAX_PER_ELEVATOR * sizeof(guest)); // Allocate memory for the array of guests inside
 
         // Create the threads
-        pthread_create(&threads[i], NULL, start, elevators[i]);
+        pthread_create(&elevator_threads[i], NULL, start, elevators[i]);
     }
+}
 
-    for (i = 0; i < NO_ELEVATORS; i++)
-    {
-        pthread_join(threads[i], NULL);
-    }
+void *managerLoop()
+{
 }

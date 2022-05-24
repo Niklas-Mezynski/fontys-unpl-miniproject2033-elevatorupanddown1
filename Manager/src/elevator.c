@@ -9,6 +9,7 @@
 #include "manager.h"
 #include "elevator.h"
 
+
 void *start(void *thisElevatorArg)
 {
     elevator *thisElevator = (elevator *)thisElevatorArg;
