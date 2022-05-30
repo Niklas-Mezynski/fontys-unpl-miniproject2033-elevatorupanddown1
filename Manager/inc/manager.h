@@ -3,39 +3,42 @@
 
 #include "elevator.h"
 
+// General case defs
 #define NO_ELEVATORS 2
 #define NO_FLOORS 10
 #define NO_APPS_PER_FLOOR 10
 
+// Server defs
 #define PORT 8080
 #define MAX_CONNECTIONS 8
-//Buffer size for incoming messages
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 128 // Buffer size for incoming messages
 
+// MessageQueue defs
+#define QUEUE_ID 187
+#define MAX_MSG_SIZE 64
+#define NUM_MESSAGES 15
 
 // Different types of messages
 typedef enum
 {
     m1,
-    m2,
-    m3
+    m2
+    //...
 } MessageType;
 
-// Different types of message senders
-typedef enum
-{
-    E,
-    F,
-    M
-} SenderType;
-
 // Struct for sending information packets between the clients and server
-struct dataPacket
+typedef struct
 {
     MessageType mType;
-    SenderType sType;
     char mBuffer[BUFFER_SIZE];
-};
+} dataPacket;
+
+typedef struct
+{
+    long mtype;       /* message type, must be > 0 */
+    int floor;    /* message data */
+    char mtext[MAX_MSG_SIZE];    /* message data */
+} messageStruct;
 
 /*
     Initializes the elevators and creates a thread for each one of them
@@ -59,6 +62,10 @@ void *managerLoop();
     - Argument(s): client_socket: a pointer to the client_socket the server will connect to
 */
 int initServer(int *client_socket);
+
+void initMsgQueue();
+
+void handleMessage();
 
 static void error_exit(char *error_message);
 

@@ -12,16 +12,23 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <sys/msg.h>
+#include <sys/ipc.h>
 #include "manager.h"
 #include "elevator.h"
 
+#define MICRO_TO_MILLI 1000
 
 elevator *elevators[NO_ELEVATORS];
 pthread_t elevator_threads[NO_ELEVATORS];
 pthread_t manager_thread;
+int queue_id;
 
 void startManager()
 {
+    // Initialize a message queue for message exchange between elevators and manager
+    initMsgQueue();
+
     // Start the elevators (and it's threads)
     initialzeElevators();
 
@@ -37,28 +44,13 @@ void startManager()
     pthread_join(manager_thread, NULL);
 }
 
-void initialzeElevators()
-{
-    // Create the elevator structs and store them in the elevators array
-    for (int i = 0; i < NO_ELEVATORS; i++)
-    {
-        elevators[i] = (elevator *)malloc(sizeof(elevator));
-        elevators[i]->id = i;
-        elevators[i]->height = 0;                                                        // Starting floor is always 0
-        elevators[i]->nextTargetFloor = -1;                                              // No target
-        elevators[i]->guestsInside = (guest **)malloc(MAX_PER_ELEVATOR * sizeof(guest)); // Allocate memory for the array of guests inside
-
-        // Create the threads
-        pthread_create(&elevator_threads[i], NULL, start, elevators[i]);
-    }
-}
-
 void *managerLoop()
 {
     int client_socket;
     char msg_buffer[BUFFER_SIZE];
     int recv_size;
     time_t rec_time;
+    /*
     //Start the server and recieve a client connection
     initServer(&client_socket);
 
@@ -76,7 +68,45 @@ void *managerLoop()
 
     // Close the connection
     close(client_socket);
+    */
+
+    // For independency between manager and floor while coding
+    messageStruct msg;
+    while (1)
+    {
+        usleep(15 * MICRO_TO_MILLI);
+        if (rand() % 1 != 0)
+            continue;
+        // Sometimes, randomly spawn someone on a floor random floor
+        // int messageSize = sizeof(msg) + 1 + MAX_MSG_SIZE;
+        // msg = (messageStruct *)malloc(messageSize);
+        msg.mtype = 0;
+        msg.floor = (rand() % NO_FLOORS);
+        // printf("Test %d\n", msg->targetFloor);
+        if (msgsnd(queue_id, &msg, sizeof(messageStruct) + 1, 0) < 0)
+        {
+            perror("Message send error");
+            exit(1);
+        }
+    }
+    free(&msg);
     return EXIT_SUCCESS;
+}
+
+void initialzeElevators()
+{
+    // Create the elevator structs and store them in the elevators array
+    for (int i = 0; i < NO_ELEVATORS; i++)
+    {
+        elevators[i] = (elevator *)malloc(sizeof(elevator));
+        elevators[i]->id = i;
+        elevators[i]->height = 0;                                                        // Starting floor is always 0
+        elevators[i]->nextTargetFloor = -1;                                              // No target
+        elevators[i]->guestsInside = (guest **)malloc(MAX_PER_ELEVATOR * sizeof(guest)); // Allocate memory for the array of guests inside
+
+        // Create the threads
+        pthread_create(&elevator_threads[i], NULL, start, elevators[i]);
+    }
 }
 
 int initServer(int *client_socket)
@@ -105,14 +135,25 @@ int initServer(int *client_socket)
     printf("Server ready, waiting for connections...\n");
 
     unsigned int len;
-
     // Accept a new client connection
     len = sizeof(client);
     *client_socket = accept(sock, (struct sockaddr *)&client, &len);
     if (*client_socket < 0)
         error_exit("Accept error");
     printf("Connected with client address: %s\n", inet_ntoa(client.sin_addr));
+
     return 1;
+}
+
+void initMsgQueue()
+{
+    // create a public message queue, with access only to the owning user
+    queue_id = msgget(QUEUE_ID, IPC_CREAT | 0600);
+    if (queue_id == -1)
+    {
+        perror("Manager: error creating the msg queue with msgget");
+        exit(1);
+    }
 }
 
 static void error_exit(char *error_message)
