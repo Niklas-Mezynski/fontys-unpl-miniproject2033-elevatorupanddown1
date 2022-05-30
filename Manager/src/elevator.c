@@ -1,6 +1,3 @@
-// Server side C/C++ program to demonstrate Socket programming
-// See: https://www.geeksforgeeks.org/socket-programming-cc/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
