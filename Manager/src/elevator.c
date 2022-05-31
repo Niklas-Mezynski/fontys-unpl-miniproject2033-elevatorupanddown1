@@ -37,7 +37,7 @@ void *start(void *thisElevatorArg)
     msgThreadArgs->queue_lock = &queue_lock;
     pthread_create(&msg_thread, NULL, recieve_messages, msgThreadArgs);
 
-    // Move the elevator
+    // Moving loop for the elevator
     while (1)
     {
         // If elevator has no current target AND there is no target in the queue -> idle
@@ -46,7 +46,11 @@ void *start(void *thisElevatorArg)
             continue;
         }
 
-        // If the elevator currently has no target
+        // If the elevator currently has no target, but there is something in the queue -> start moving to that floor
+        if (thisElevator->nextTargetFloor == -1 && !isEmpty(targetFloorQueue))
+        {
+            //Move the elevator towards the floor
+        }
     }
 }
 
@@ -68,6 +72,8 @@ void *recieve_messages(void *messageThreadArgs)
             exit(1);
         }
         printf("Elevator %d recieved message to go to floor %d\n", thisElevator->id, msg->floor);
+
+        // Add the message to the tail of the floor queue
         pthread_mutex_lock(queue_lock);
         addRearLL(targetFloorQueue, msg->floor);
         pthread_mutex_unlock(queue_lock);
