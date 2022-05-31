@@ -1,6 +1,8 @@
 #ifndef LL_H
 #define LL_H
 
+#include "stdbool.h"
+
 struct Snode
 {
     int value;
