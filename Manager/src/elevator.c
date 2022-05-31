@@ -9,6 +9,13 @@
 #include "elevator.h"
 #include "LL.h"
 
+/*
+       1000 ticks -> 1 sec
+      60000 ticks -> 1 min
+    3600000 ticks -> 1 hour
+   86400000 ticks -> 24 hours
+*/
+
 int queue_id;
 
 void *start(void *thisElevatorArg)
