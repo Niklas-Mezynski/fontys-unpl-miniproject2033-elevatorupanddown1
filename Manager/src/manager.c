@@ -19,6 +19,7 @@
 
 #define MICRO_TO_MILLI 1000
 
+clock_t start_t;
 elevator *elevators[NO_ELEVATORS];
 pthread_t elevator_threads[NO_ELEVATORS];
 pthread_t manager_thread;
@@ -42,6 +43,8 @@ void startManager()
     }
     // Wait for the manager thread
     pthread_join(manager_thread, NULL);
+    // Start counting clock ticks
+    start_t = clock();
 }
 
 void *managerLoop()
@@ -167,4 +170,8 @@ void error_exit(char *error_message)
 double clockToMillis(clock_t timeBegin, clock_t timeEnd)
 {
     return 1000 * ((double)timeEnd - timeBegin) / CLOCKS_PER_SEC;
+}
+
+int getCurrentTicks() {
+    return (clock() - start_t);
 }

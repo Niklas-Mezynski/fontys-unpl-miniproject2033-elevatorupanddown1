@@ -77,4 +77,6 @@ void error_exit(char *error_message);
 
 double clockToMillis(clock_t timeBegin, clock_t timeEnd);
 
+int getCurrentTicks();
+
 #endif

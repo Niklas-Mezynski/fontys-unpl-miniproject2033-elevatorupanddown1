@@ -17,6 +17,7 @@ typedef struct
     double height;
     int nextTargetFloor;    // -1 if no target
     guest **guestsInside;
+    pthread_t movement;
 } elevator;
 
 /*
