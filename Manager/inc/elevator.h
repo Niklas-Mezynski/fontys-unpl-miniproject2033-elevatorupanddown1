@@ -1,6 +1,8 @@
 #ifndef __ELEVATOR
 #define __ELEVATOR
 
+// #include "manager.h"
+
 #define MAX_PER_ELEVATOR 5
 
 typedef struct
@@ -13,7 +15,7 @@ typedef struct
 {
     int id;
     double height;
-    int nextTargetFloor;
+    int nextTargetFloor;    // -1 if no target
     guest **guestsInside;
 } elevator;
 
@@ -23,5 +25,18 @@ typedef struct
     - Argument(s): elevator: a pointer to the elevator struct of itself
 */
 void *start(void *e);
+
+// Helper struct to pass multiple args to the message reciever thread function
+struct messageThreadArgs
+{
+    elevator *thisElevator;
+    LinkedList *targetFloorQueue;
+    pthread_mutex_t *queue_lock;
+};
+/*
+    Thread function that is responsible for recieving for that elevator
+    - Argument(s): messageThreadArgs: Contains a struct with the args
+*/
+void *recieve_messages(void *messageThreadArgs);
 
 #endif

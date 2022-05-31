@@ -4,9 +4,9 @@ SRCDIR=src
 INCDIR=inc
 TARGET=$(BINDIR)/manager
 
-DEP=$(INCDIR)/manager.h $(INCDIR)/elevator.h
+DEP=$(INCDIR)/manager.h $(INCDIR)/elevator.h $(INCDIR)/LL.h
 
-OBJECTS=$(BUILDDIR)/manager.o $(BUILDDIR)/elevator.o $(BUILDDIR)/main.o
+OBJECTS=$(BUILDDIR)/manager.o $(BUILDDIR)/elevator.o $(BUILDDIR)/LL.o $(BUILDDIR)/main.o
 
 CC=gcc
 CFLAGS=-I.
@@ -16,9 +16,9 @@ $(TARGET): $(OBJECTS)
 	$(CC) -pthread $^ -o $@
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.c $(DEP)
-	$(CC) -I$(INCDIR) -c $< -o $@
+	$(CC) -I $(INCDIR) -c $< -o $@
 
 clean:
 	@echo "cleaning..."
-	rm $(BINDIR)/*
 	rm $(BUILDDIR)/*
+	rm $(BINDIR)/*

@@ -1,7 +1,7 @@
 #ifndef __MANAGER
 #define __MANAGER
 
-#include "elevator.h"
+// #include "elevator.h"
 
 // General case defs
 #define NO_ELEVATORS 2
@@ -35,10 +35,9 @@ typedef struct
 
 typedef struct
 {
-    long mtype;       /* message type, must be > 0 */
-    int floor;    /* message data */
-    char mtext[MAX_MSG_SIZE];    /* message data */
-} messageStruct;
+    long mtype;       // message type, must be > 0, contains the id + 1 of the elevatorthat the message is meant for
+    int floor;    // The floor the elevator should move to next
+} manager_to_elevator;
 
 /*
     Initializes the elevators and creates a thread for each one of them
@@ -63,10 +62,19 @@ void *managerLoop();
 */
 int initServer(int *client_socket);
 
-void initMsgQueue();
+/*
+    Initializes the message queue with the ID defined in manager.h
+    - Argument(s): target_queue_id: a pointer to target int for the queue id
+*/
+void initMsgQueue(int *target_queue_id);
 
 void handleMessage();
 
-static void error_exit(char *error_message);
+/*
+    Prints the error_message to the console and exits the program
+*/
+void error_exit(char *error_message);
+
+double clockToMillis(clock_t timeBegin, clock_t timeEnd);
 
 #endif

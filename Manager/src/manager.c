@@ -27,7 +27,7 @@ int queue_id;
 void startManager()
 {
     // Initialize a message queue for message exchange between elevators and manager
-    initMsgQueue();
+    initMsgQueue(&queue_id);
 
     // Start the elevators (and it's threads)
     initialzeElevators();
@@ -71,25 +71,26 @@ void *managerLoop()
     */
 
     // For independency between manager and floor while coding
-    messageStruct msg;
+    manager_to_elevator *msg = (manager_to_elevator *)malloc(sizeof(manager_to_elevator));
     while (1)
     {
-        usleep(15 * MICRO_TO_MILLI);
-        if (rand() % 1 != 0)
+        usleep(50 * MICRO_TO_MILLI);
+        if (rand() % 10 != 0)
             continue;
-        // Sometimes, randomly spawn someone on a floor random floor
+        // Sometimes, randomly spawn a person on a random floor
         // int messageSize = sizeof(msg) + 1 + MAX_MSG_SIZE;
-        // msg = (messageStruct *)malloc(messageSize);
-        msg.mtype = 0;
-        msg.floor = (rand() % NO_FLOORS);
+        // msg = (manager_to_elevator *)malloc(messageSize);
+        msg->mtype = (rand() % NO_ELEVATORS) + 1;
+        msg->floor = (rand() % NO_FLOORS);
         // printf("Test %d\n", msg->targetFloor);
-        if (msgsnd(queue_id, &msg, sizeof(messageStruct) + 1, 0) < 0)
+        if (msgsnd(queue_id, msg, sizeof(manager_to_elevator), 0) == -1)
         {
-            perror("Message send error");
-            exit(1);
+            error_exit("Message send error");
+            // perror("Message send error");
+            // exit(1);
         }
     }
-    free(&msg);
+    free(msg);
     return EXIT_SUCCESS;
 }
 
@@ -145,10 +146,10 @@ int initServer(int *client_socket)
     return 1;
 }
 
-void initMsgQueue()
+void initMsgQueue(int *target_queue_id)
 {
     // create a public message queue, with access only to the owning user
-    queue_id = msgget(QUEUE_ID, IPC_CREAT | 0600);
+    *target_queue_id = msgget(QUEUE_ID, IPC_CREAT | 0600);
     if (queue_id == -1)
     {
         perror("Manager: error creating the msg queue with msgget");
@@ -156,7 +157,14 @@ void initMsgQueue()
     }
 }
 
-static void error_exit(char *error_message)
+void error_exit(char *error_message)
 {
-    fprintf(stderr, "%s: %s\n", error_message, strerror(errno));
+    // fprintf(stderr, "%s: %s\n", error_message, strerror(errno));
+    perror(error_message);
+    exit(1);
+}
+
+double clockToMillis(clock_t timeBegin, clock_t timeEnd)
+{
+    return 1000 * ((double)timeEnd - timeBegin) / CLOCKS_PER_SEC;
 }
