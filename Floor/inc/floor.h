@@ -6,7 +6,7 @@
 //struct for each floor
 typedef struct
 {
-    int id;
+    int floorID;
     int no_apartments;
 } floorStruct;
 
@@ -15,11 +15,18 @@ struct message
     
 };
 
+// typedef struct
+// {
+//     int id;
+//     floorStruct *floor;
+// } person;
+
+//struct to tell the manager how many people there are and at which floor  
 typedef struct
 {
-    int id;
-    floorStruct *floor;
-} person;
+    int waitingPeople;
+    int floorID;  
+} floor_to_manager;
 
 void* start();
 

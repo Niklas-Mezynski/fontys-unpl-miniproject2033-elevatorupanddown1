@@ -19,6 +19,5 @@ void startLogging(){
 
 
 int main(int argc, char const *argv[]) {
-    // initializeFloors(3);
-    //initializeRandom();
+    startFloors();    
 }

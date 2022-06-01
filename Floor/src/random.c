@@ -9,21 +9,11 @@
 //#include "../../Manager/inc/manager.h"
 
 #define BUFFER_SIZE 10
-
-int buffer[BUFFER_SIZE];
-int counter = 0;
-
-pthread_t producer_thread, consumer_thread;
-pthread_mutex_t mutex;
-sem_t  *empty, *full;
-
-double lambda = 1.0;
-double mu = 1.0;
+#define lambda 1.0
 
 // lambda = arrival rate = 1/IAT; IAT = Inter Arrival Time
 // newIAT = -log(rand())/lambda
 // newIAT is calculated in us (microseconds)
-
 int nexp() {
     double newIAT;
     double rnd;
