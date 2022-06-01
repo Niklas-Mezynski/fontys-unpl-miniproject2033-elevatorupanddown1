@@ -3,17 +3,18 @@ BUILDDIR=build
 SRCDIR=src
 INCDIR=inc
 TARGET=$(BINDIR)/floor
+ARGS=-pthread -lm
 
 DEP=$(INCDIR)/floor.h
 
-OBJECTS=$(BUILDDIR)/floor.o
+OBJECTS=$(BUILDDIR)/floor.o $(BUILDDIR)/random.o $(BUILDDIR)/main.o
 
 CC=gcc
 CFLAGS=-I.
 
 
 $(TARGET): $(OBJECTS)
-	$(CC) $^ -o $@
+	$(CC) $^ -o $@ $(ARGS)
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.c $(DEP)
 	$(CC) -I$(INCDIR) -c $< -o $@
