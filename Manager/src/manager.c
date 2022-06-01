@@ -17,8 +17,6 @@
 #include "manager.h"
 #include "elevator.h"
 
-#define MICRO_TO_MILLI 1000
-
 clock_t start_t;
 elevator *elevators[NO_ELEVATORS];
 pthread_t elevator_threads[NO_ELEVATORS];
@@ -30,10 +28,13 @@ void startManager()
 {
     // Initialize a message queue for message exchange between elevators and manager
     initMsgQueue(&send_queue_id, QUEUE_ID_MANAGER_TO_ELEVATOR, IPC_CREAT | 0600);
-    initMsgQueue(&rec_queue_id, QUEUE_ID_ELEVATOR_TO_MANAGER, 0);
+    // initMsgQueue(&rec_queue_id, QUEUE_ID_ELEVATOR_TO_MANAGER, 0);
 
     // Start the elevators (and it's threads)
     initialzeElevators();
+
+    // Safe the program start
+    start_t = clock();
 
     // Start the manager thread
     pthread_create(&manager_thread, NULL, managerLoop, NULL);
@@ -46,7 +47,6 @@ void startManager()
     // Wait for the manager thread
     pthread_join(manager_thread, NULL);
     // Start counting clock ticks
-    start_t = clock();
 }
 
 void *managerLoop()
@@ -84,16 +84,16 @@ void *managerLoop()
 
     while (1)
     {
-        usleep(50 * MICRO_TO_MILLI);
+        usleep(rand() % 200 + 50 * MILLI_TO_MICRO);
 
         // Check for incoming messages by the
         if (checkIncomingMsgs(queueInfos, rec_msg))
         {
-            //Do something with the message (send it to the floor)
+            // Do something with the message (send it to the floor)
         }
 
-        if (rand() % 10 != 0)
-            continue;
+        // if (rand() % 10 != 0)
+        //     continue;
         // Sometimes, randomly spawn a person on a random floor
         msg->mtype = (rand() % NO_ELEVATORS) + 1;
         msg->floor = (rand() % NO_FLOORS);
@@ -208,6 +208,7 @@ double clockToMillis(clock_t timeBegin, clock_t timeEnd)
     return 1000 * ((double)timeEnd - timeBegin) / CLOCKS_PER_SEC;
 }
 
-int getCurrentTicks() {
+int getCurrentTicks()
+{
     return (clock() - start_t);
 }

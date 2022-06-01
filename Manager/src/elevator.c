@@ -18,7 +18,12 @@ int send_queue_id;
    86400000 ticks -> 24 hours
 */
 
-int queue_id;
+/*  THIS ONE IS CURRENTLY IN USE
+       1ms ticks -> 1 sec
+      60ms ticks -> 1 min
+    3600ms ticks -> 1 hour
+   86400ms ticks -> 24 hours
+*/
 
 void *start(void *thisElevatorArg)
 {
@@ -46,41 +51,63 @@ void *start(void *thisElevatorArg)
     msgThreadArgs->queue_lock = &queue_lock;
     pthread_create(&msg_thread, NULL, recieve_messages, msgThreadArgs);
 
+    clock_t last_move;
+    double targetFloorHeight;
     // Moving loop for the elevator
     while (1)
     {
         // If elevator has no current target AND there is no target in the queue -> idle
-<<<<<<< HEAD
-        // if (thisElevator->nextTargetFloor == -1 && isEmpty(targetFloorQueue))
-        // {
-        //     continue;
-        // }
-
-        // // If the elevator currently has no target, but there is something in the queue -> start moving to that floor
-        // if (thisElevator->nextTargetFloor == -1 && !isEmpty(targetFloorQueue))
-        // {
-        //     // Move the elevator towards the floor
-        // }
-=======
         if (thisElevator->nextTargetFloor == -1 && isEmpty(targetFloorQueue))
         {
-            printf("Elevator %d idling.\n", thisElevator->id);
-            usleep(1000);
+            // printf("Elevator %d idling.\n", thisElevator->id);
+            usleep(1 * MILLI_TO_MICRO);
+            last_move = clock();
             continue;
         }
 
-        // If the elevator currently has no target, but there is something in the queue -> start moving to that floor
+        // If there is something in the queue and the elevator currently has no target -> schedule the target
         if (thisElevator->nextTargetFloor == -1 && !isEmpty(targetFloorQueue))
         {
-            // Move the elevator towards the floor
             thisElevator->nextTargetFloor = targetFloorQueue->head->value;
-            pthread_create(&thisElevator->movement, NULL, moveElevator, thisElevator);
-            // Wait for moving process to finish
-            pthread_join(thisElevator->movement, NULL);
-            pthread_exit(thisElevator->movement);
+            targetFloorHeight = thisElevator->nextTargetFloor * 4.5;
+            pthread_mutex_lock(&queue_lock);
             deleteLL(targetFloorQueue);
+            pthread_mutex_unlock(&queue_lock);
+            printf("Elevator %d will now move to floor %d\n", thisElevator->id, thisElevator->nextTargetFloor);
+            last_move = clock();
         }
->>>>>>> 641124ca3d367b4e3ac7b67fb1192bdeea04b18b
+
+        // Check if the elevator is at the queue's first target floor (+- 0.1 meter)
+        // if (thisElevator->nextTargetFloor != -1 && targetFloorHeight - 0.1 < thisElevator->height < targetFloorHeight * 4.5 + 0.1)
+        if (thisElevator->nextTargetFloor != -1 && thisElevator->height > targetFloorHeight - 0.1 && thisElevator->height < targetFloorHeight + 0.1)
+        {
+            printf("Elevator %d is now picking up people from floor %d\n", thisElevator->id, thisElevator->nextTargetFloor);
+            // Update the values of the elevator
+            thisElevator->height = targetFloorHeight;
+            thisElevator->nextTargetFloor = -1;
+            // TODO take all people from that floor and message the manager
+
+            //Sleep for 3 "seconds" (time people need to quit the elevator)
+            usleep(3 * MILLI_TO_MICRO);
+            last_move = clock();
+            continue;
+        }
+
+        // If the elevator currently has a target -> move towards it
+        if (thisElevator->nextTargetFloor != -1)
+        {
+            // Move the elevator towards target floor
+            moveElevatorAlt(thisElevator, &last_move);
+            // printf("Elevator %d is moving...\n", thisElevator->id);
+
+            // Move the elevator towards the floor
+            // thisElevator->nextTargetFloor = targetFloorQueue->head->value;
+            // pthread_create(&thisElevator->movement, NULL, moveElevator, thisElevator);
+            // // Wait for moving process to finish
+            // pthread_join(thisElevator->movement, NULL);
+            // pthread_exit(thisElevator->movement);
+            // deleteLL(targetFloorQueue);
+        }
     }
 }
 
@@ -95,13 +122,14 @@ void *recieve_messages(void *messageThreadArgs)
     manager_to_elevator *msg = (manager_to_elevator *)malloc(sizeof(manager_to_elevator));
     while (1)
     {
+        // printf("Snens\n");
         // Recieve messages
         if (msgrcv(rec_queue_id, msg, sizeof(manager_to_elevator), (thisElevator->id + 1), 0) < 0)
         {
             perror("Elevator recieve error");
             exit(1);
         }
-        printf("Elevator %d recieved message to go to floor %d   %f\n", thisElevator->id, msg->floor, clockToMillis(0, clock()));
+        printf("Elevator %d recieved message to visit floor %d   %f\n", thisElevator->id, msg->floor, clockToMillis(0, clock()));
 
         // Add the message to the tail of the floor queue
         pthread_mutex_lock(queue_lock);
@@ -110,48 +138,67 @@ void *recieve_messages(void *messageThreadArgs)
     }
 }
 
-void *moveElevator(void *thisElevatorArg) {
-    elevator *thisElevator = (elevator *)thisElevatorArg;
-    // Calculate distance to floor 1
-    double targetFloorHeight = thisElevator->nextTargetFloor * 4.5;
-    clock_t start_t;
+// void *moveElevator(void *thisElevatorArg)
+// {
+//     elevator *thisElevator = (elevator *)thisElevatorArg;
+//     // Calculate distance to floor 1
+//     double targetFloorHeight = thisElevator->nextTargetFloor * 4.5;
+//     clock_t start_t;
 
-    // TODO: Implement stop process of the elevator for stopping at exact floor height
+//     // TODO: Implement stop process of the elevator for stopping at exact floor height
+//     if (thisElevator->height < targetFloorHeight)
+//     {
+//         start_t = clock();
+//         while (!(thisElevator->height >= targetFloorHeight))
+//         {
+//             usleep(1);
+//             if ((clock() - start_t) < 2000)
+//             {
+//                 thisElevator->height += 0.001;
+//                 continue;
+//             }
+//             if ((clock() - start_t) < 3000)
+//             {
+//                 thisElevator->height += 0.002;
+//                 continue;
+//             }
+//             thisElevator->height += 0.003;
+//         }
+//     }
+//     else if (thisElevator->height > targetFloorHeight)
+//     {
+//         start_t = clock();
+//         while (!(thisElevator->height <= targetFloorHeight))
+//         {
+//             usleep(1);
+//             if ((clock() - start_t) < 2000)
+//             {
+//                 thisElevator->height -= 0.001;
+//                 continue;
+//             }
+//             if ((clock() - start_t) < 3000)
+//             {
+//                 thisElevator->height -= 0.002;
+//                 continue;
+//             }
+//             thisElevator->height -= 0.003;
+//         }
+//     }
+//     thisElevator->nextTargetFloor = -1;
+// }
+
+void moveElevatorAlt(elevator *thisElevator, clock_t *last_move)
+{
+    // Calculate distance to floor 0
+    double targetFloorHeight = thisElevator->nextTargetFloor * 4.5;
+
     if (thisElevator->height < targetFloorHeight)
     {
-        start_t = clock();
-        while (!(thisElevator->height >= targetFloorHeight))
-        {
-            usleep(1);
-            if ((clock() - start_t) < 2000)
-            {
-                thisElevator->height += 0.001;
-                continue;
-            }
-            if ((clock() - start_t) < 3000)
-            {
-                thisElevator->height += 0.002;
-                continue;
-            }
-            thisElevator->height += 0.003;
-        }
-    } else if (thisElevator->height > targetFloorHeight) {
-        start_t = clock();
-        while (!(thisElevator->height <= targetFloorHeight))
-        {
-            usleep(1);
-            if ((clock() - start_t) < 2000)
-            {
-                thisElevator->height -= 0.001;
-                continue;
-            }
-            if ((clock() - start_t) < 3000)
-            {
-                thisElevator->height -= 0.002;
-                continue;
-            }
-            thisElevator->height -= 0.003;
-        }
+        thisElevator->height += ELEVATOR_SPEED * clockToMillis(*last_move, clock());
     }
-    thisElevator->nextTargetFloor = -1;
+    else if (thisElevator->height > targetFloorHeight)
+    {
+        thisElevator->height -= ELEVATOR_SPEED * clockToMillis(*last_move, clock());
+    }
+    *last_move = clock();
 }

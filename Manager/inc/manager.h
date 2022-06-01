@@ -20,6 +20,10 @@
 #define MAX_MSG_SIZE 64
 #define NUM_MESSAGES 15
 
+// Helpers
+#define MILLI_TO_MICRO 1000
+
+
 // Different types of messages
 typedef enum
 {

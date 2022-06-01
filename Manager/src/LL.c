@@ -106,5 +106,8 @@ void deleteLL(LinkedList *list)
         node* toRemove = list->head;
         list->head = toRemove->next;
         free(toRemove);
+    } else
+    {
+        list->head = NULL;
     }
 }

@@ -4,6 +4,7 @@
 #include "LL.h"
 
 #define MAX_PER_ELEVATOR 5
+#define ELEVATOR_SPEED 3 // meter per milliseconds 
 
 typedef struct
 {
@@ -39,5 +40,7 @@ struct messageThreadArgs
     - Argument(s): messageThreadArgs: Contains a struct with the args
 */
 void *recieve_messages(void *messageThreadArgs);
+
+void moveElevatorAlt(elevator *thisElevator, clock_t *last_move);
 
 #endif
