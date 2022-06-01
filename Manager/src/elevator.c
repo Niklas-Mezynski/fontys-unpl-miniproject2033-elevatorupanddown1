@@ -9,16 +9,17 @@
 #include "elevator.h"
 #include "LL.h"
 
-int queue_id;
+int rec_queue_id;
+int send_queue_id;
 
 void *start(void *thisElevatorArg)
 {
     // Get the elevator from the arg
     elevator *thisElevator = (elevator *)thisElevatorArg;
 
-    // Initialize the mailbox
-    // queue_id = msgget(QUEUE_ID, 0);
-    initMsgQueue(&queue_id);
+    // Initialize the mailboxes
+    // initMsgQueue(&send_queue_id, QUEUE_ID_ELEVATOR_TO_MANAGER, IPC_CREAT | 0600);
+    initMsgQueue(&rec_queue_id, QUEUE_ID_MANAGER_TO_ELEVATOR, 0);
 
     // Queue for storing the floors the elevator needs to reach
     LinkedList *targetFloorQueue = (LinkedList *)malloc(sizeof(LinkedList));
@@ -41,16 +42,16 @@ void *start(void *thisElevatorArg)
     while (1)
     {
         // If elevator has no current target AND there is no target in the queue -> idle
-        if (thisElevator->nextTargetFloor == -1 && isEmpty(targetFloorQueue))
-        {
-            continue;
-        }
+        // if (thisElevator->nextTargetFloor == -1 && isEmpty(targetFloorQueue))
+        // {
+        //     continue;
+        // }
 
-        // If the elevator currently has no target, but there is something in the queue -> start moving to that floor
-        if (thisElevator->nextTargetFloor == -1 && !isEmpty(targetFloorQueue))
-        {
-            //Move the elevator towards the floor
-        }
+        // // If the elevator currently has no target, but there is something in the queue -> start moving to that floor
+        // if (thisElevator->nextTargetFloor == -1 && !isEmpty(targetFloorQueue))
+        // {
+        //     // Move the elevator towards the floor
+        // }
     }
 }
 
@@ -66,12 +67,12 @@ void *recieve_messages(void *messageThreadArgs)
     while (1)
     {
         // Recieve messages
-        if (msgrcv(queue_id, msg, sizeof(manager_to_elevator), (thisElevator->id + 1), 0) == -1)
+        if (msgrcv(rec_queue_id, msg, sizeof(manager_to_elevator), (thisElevator->id + 1), 0) < 0)
         {
             perror("Elevator recieve error");
             exit(1);
         }
-        printf("Elevator %d recieved message to go to floor %d\n", thisElevator->id, msg->floor);
+        printf("Elevator %d recieved message to go to floor %d   %f\n", thisElevator->id, msg->floor, clockToMillis(0, clock()));
 
         // Add the message to the tail of the floor queue
         pthread_mutex_lock(queue_lock);
