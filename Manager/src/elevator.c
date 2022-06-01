@@ -11,6 +11,14 @@
 
 int rec_queue_id;
 int send_queue_id;
+/*
+       1000 ticks -> 1 sec
+      60000 ticks -> 1 min
+    3600000 ticks -> 1 hour
+   86400000 ticks -> 24 hours
+*/
+
+int queue_id;
 
 void *start(void *thisElevatorArg)
 {
@@ -42,6 +50,7 @@ void *start(void *thisElevatorArg)
     while (1)
     {
         // If elevator has no current target AND there is no target in the queue -> idle
+<<<<<<< HEAD
         // if (thisElevator->nextTargetFloor == -1 && isEmpty(targetFloorQueue))
         // {
         //     continue;
@@ -52,6 +61,26 @@ void *start(void *thisElevatorArg)
         // {
         //     // Move the elevator towards the floor
         // }
+=======
+        if (thisElevator->nextTargetFloor == -1 && isEmpty(targetFloorQueue))
+        {
+            printf("Elevator %d idling.\n", thisElevator->id);
+            usleep(1000);
+            continue;
+        }
+
+        // If the elevator currently has no target, but there is something in the queue -> start moving to that floor
+        if (thisElevator->nextTargetFloor == -1 && !isEmpty(targetFloorQueue))
+        {
+            // Move the elevator towards the floor
+            thisElevator->nextTargetFloor = targetFloorQueue->head->value;
+            pthread_create(&thisElevator->movement, NULL, moveElevator, thisElevator);
+            // Wait for moving process to finish
+            pthread_join(thisElevator->movement, NULL);
+            pthread_exit(thisElevator->movement);
+            deleteLL(targetFloorQueue);
+        }
+>>>>>>> 641124ca3d367b4e3ac7b67fb1192bdeea04b18b
     }
 }
 
@@ -79,4 +108,50 @@ void *recieve_messages(void *messageThreadArgs)
         addRearLL(targetFloorQueue, msg->floor);
         pthread_mutex_unlock(queue_lock);
     }
+}
+
+void *moveElevator(void *thisElevatorArg) {
+    elevator *thisElevator = (elevator *)thisElevatorArg;
+    // Calculate distance to floor 1
+    double targetFloorHeight = thisElevator->nextTargetFloor * 4.5;
+    clock_t start_t;
+
+    // TODO: Implement stop process of the elevator for stopping at exact floor height
+    if (thisElevator->height < targetFloorHeight)
+    {
+        start_t = clock();
+        while (!(thisElevator->height >= targetFloorHeight))
+        {
+            usleep(1);
+            if ((clock() - start_t) < 2000)
+            {
+                thisElevator->height += 0.001;
+                continue;
+            }
+            if ((clock() - start_t) < 3000)
+            {
+                thisElevator->height += 0.002;
+                continue;
+            }
+            thisElevator->height += 0.003;
+        }
+    } else if (thisElevator->height > targetFloorHeight) {
+        start_t = clock();
+        while (!(thisElevator->height <= targetFloorHeight))
+        {
+            usleep(1);
+            if ((clock() - start_t) < 2000)
+            {
+                thisElevator->height -= 0.001;
+                continue;
+            }
+            if ((clock() - start_t) < 3000)
+            {
+                thisElevator->height -= 0.002;
+                continue;
+            }
+            thisElevator->height -= 0.003;
+        }
+    }
+    thisElevator->nextTargetFloor = -1;
 }
