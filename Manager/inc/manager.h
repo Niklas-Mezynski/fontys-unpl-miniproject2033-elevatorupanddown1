@@ -1,7 +1,8 @@
 #ifndef __MANAGER
 #define __MANAGER
 
-// #include "elevator.h"
+#include <stdbool.h>
+#include <sys/msg.h>
 
 // General case defs
 #define NO_ELEVATORS 2
@@ -14,7 +15,8 @@
 #define BUFFER_SIZE 128 // Buffer size for incoming messages
 
 // MessageQueue defs
-#define QUEUE_ID 187
+#define QUEUE_ID_MANAGER_TO_ELEVATOR 1
+#define QUEUE_ID_ELEVATOR_TO_MANAGER 2
 #define MAX_MSG_SIZE 64
 #define NUM_MESSAGES 15
 
@@ -35,9 +37,15 @@ typedef struct
 
 typedef struct
 {
-    long mtype;       // message type, must be > 0, contains the id + 1 of the elevatorthat the message is meant for
-    int floor;    // The floor the elevator should move to next
+    long mtype; // message type, must be > 0, contains the id + 1 of the elevatorthat the message is meant for
+    int floor;  // The floor the elevator should move to next
 } manager_to_elevator;
+
+typedef struct
+{
+    long mtype; // message type, must be > 0, contains the id + 1 of the elevatorthat the message is meant for
+    int floor;  // The floor the elevator should move to next
+} elevator_to_manager;
 
 /*
     Initializes the elevators and creates a thread for each one of them
@@ -66,8 +74,17 @@ int initServer(int *client_socket);
     Initializes the message queue with the ID defined in manager.h
     - Argument(s): target_queue_id: a pointer to target int for the queue id
 */
-void initMsgQueue(int *target_queue_id);
+void initMsgQueue(int *target_queue_id, int custom_queue_id, int flag);
 
+/*
+    Checks if there are any new messages in the msg input queue
+    - Argument(s):  targetqueueInfos: pointer to store queue information in
+                    msg_out: pointer where the msg should be stored (if exists)
+    - returns:      true if a messages has been recieved and stored
+*/
+bool checkIncomingMsgs(struct msqid_ds *queueInfos, elevator_to_manager *msg_out);
+
+// Not implemented yet
 void handleMessage();
 
 /*

@@ -3,6 +3,7 @@ BUILDDIR=build
 SRCDIR=src
 INCDIR=inc
 TARGET=$(BINDIR)/manager
+ARGS=-pthread
 
 DEP=$(INCDIR)/manager.h $(INCDIR)/elevator.h $(INCDIR)/LL.h
 
@@ -13,7 +14,7 @@ CFLAGS=-I.
 
 
 $(TARGET): $(OBJECTS)
-	$(CC) -pthread $^ -o $@
+	$(CC) $^ -o $@ $(ARGS)
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.c $(DEP)
 	$(CC) -I $(INCDIR) -c $< -o $@
