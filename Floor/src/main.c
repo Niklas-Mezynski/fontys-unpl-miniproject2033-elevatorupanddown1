@@ -7,18 +7,18 @@
 #include <time.h>
 #include <math.h>
 #include "floor.h"
-
+#include "random.h"
 
 
 
 
 void startLogging(){
     
-    
 }
 
 
 
 int main(int argc, char const *argv[]) {
-    initializeFloors(3);
+    // initializeFloors(3);
+    //initializeRandom();
 }

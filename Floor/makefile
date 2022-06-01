@@ -5,9 +5,9 @@ INCDIR=inc
 TARGET=$(BINDIR)/floor
 ARGS=-pthread -lm
 
-DEP=$(INCDIR)/floor.h
+DEP=$(INCDIR)/floor.h $(INCDIR)/random.h $(INCDIR)/LL.h
 
-OBJECTS=$(BUILDDIR)/floor.o $(BUILDDIR)/random.o $(BUILDDIR)/main.o
+OBJECTS=$(BUILDDIR)/floor.o $(BUILDDIR)/random.o $(BUILDDIR)/LL.o $(BUILDDIR)/main.o 
 
 CC=gcc
 CFLAGS=-I.
@@ -17,7 +17,7 @@ $(TARGET): $(OBJECTS)
 	$(CC) $^ -o $@ $(ARGS)
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.c $(DEP)
-	$(CC) -I$(INCDIR) -c $< -o $@
+	$(CC) -I $(INCDIR) -c $< -o $@
 
 clean:
 	@echo "cleaning..."
