@@ -1,11 +1,20 @@
 #include <stdio.h>
-#include <pthread.h>
-#include <semaphore.h>
-#include <stdlib.h> 
+#include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <fcntl.h>
+#include <errno.h>
 #include <time.h>
-#include <math.h>
+#include <pthread.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <sys/msg.h>
+#include <sys/ipc.h>
+#include "math.h"
 #include "floor.h"
 #include "random.h"
 
@@ -16,50 +25,56 @@
 #define SA struct sockaddr
 
 int sockfd;
+int queue_id;
 
 floorStruct *floors[NO_FLOORS];
 pthread_t threads[NO_FLOORS];
 
-person *persons[NO_APARTMENTS];
+// person *persons[NO_APARTMENTS];
 
 pthread_t clientThread;
 
-void startFloors() {
+void startFloors()
+{
+    queue_id = msgget(QUEUE_ID, IPC_CREAT | 0600);
+    pthread_create(&clientThread, NULL, floorClient, NULL);
     initializeFloors();
+    pthread_join(clientThread, NULL);
 
     // pthread_join(clientThread, NULL);
 }
 
-void initializeFloors() 
+void initializeFloors()
 {
     int i;
-    for (i = 0; i < NO_FLOORS; i++) 
+    for (i = 0; i < NO_FLOORS; i++)
     {
-        
-        if(i == 0) 
+
+        if (i == 0)
         {
-            floors[i] -> no_apartments = 0;
-            floors[i] -> id = i + 1;
-            pthread_create(&threads[i], NULL, start, floors[i]);
-        } else {
-            floors[i] -> no_apartments = NO_APARTMENTS;
-            floors[i] -> id = i + 1;
+            floors[i] = malloc(sizeof(floorStruct));
+            floors[i]->no_apartments = 0;
+            floors[i]->floorID = i + 1;
             pthread_create(&threads[i], NULL, start, floors[i]);
         }
-        
+        else
+        {
+            floors[i] = malloc(sizeof(floorStruct));
+            floors[i]->no_apartments = NO_APARTMENTS;
+            floors[i]->floorID = i + 1;
+            pthread_create(&threads[i], NULL, start, floors[i]);
+        }
     }
-    for (i = 0; i < NO_FLOORS; i++) 
+    for (i = 0; i < NO_FLOORS; i++)
     {
         pthread_join(threads[i], NULL);
     }
-
 }
-
 
 void initializeSocket() {
     int connfd;
     struct sockaddr_in servaddr, cli;
-   
+
     // socket create and verification
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
@@ -69,12 +84,12 @@ void initializeSocket() {
     else
         printf("Socket successfully created..\n");
     bzero(&servaddr, sizeof(servaddr));
-   
+
     // assign IP, PORT
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
     servaddr.sin_port = htons(PORT);
-   
+
     // connect the client socket to server socket
     if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) {
         printf("connection with the server failed...\n");
@@ -83,31 +98,51 @@ void initializeSocket() {
     else
         printf("connected to the server..\n");
 
-    
+
 }
 
-void* floorClient() {
-    //TODO recieve and send
-    floor_to_manager *msg = (floor_to_manager *)malloc(sizeof(floor_to_manager));
-
-    while(1)
+void *floorClient()
+{
+    // TODO recieve and send
+    client_to_floor *msg = (client_to_floor *)malloc(sizeof(client_to_floor));
+    int rc;
+    while (1)
     {
-        if(msgrcv(sockfd, msg, sizeof(floor_to_manager), 0) == -1) {printf("error sending message")};
+        rc = msgrcv(queue_id, msg, sizeof(client_to_floor), 1, 0);
+        if (rc == -1)
+        {
+            perror("error recieving");
+        }
+        else
+        {
+            printf("Msg recieved: Floor ID: %d\n", msg->floorID);
+        }
     }
 }
 
-void* start(void* floorArguments) {
-    floorStruct* floor = (floorStruct* )floorArguments;
-    LinkedList *peopleInQueue = (LinkedList* )malloc(sizeof(LinkedList));
-    constructLL(peopleInQueue);
-    pthread_create(&clientThread, NULL, floorClient, NULL);
+void *start(void *floorArguments)
+{
+    floorStruct *floor = (floorStruct *)floorArguments;
+    floor_to_client *msg = (floor_to_client *)malloc(sizeof(floor_to_client));
 
-    while(1){
-        //sleep til Inter Arrival Time is over
-        sleep(nexp());
-        //then add one person to list, that want to get collected by the elevator
-        addRearLL(peopleInQueue, 1);
+    // LinkedList *peopleInQueue = (LinkedList* )malloc(sizeof(LinkedList));
+    // constructLL(peopleInQueue);
+
+    while (1)
+    {
+        // sleep til Inter Arrival Time is over
+        usleep(nexp());
+        // sleep(1);
+        // add a person to the mailbox so the floor client can send it to the manager
+
+        msg->mtype = 1;
+        msg->floorID = 1;
+        msg->noPeople = 1;
+
+        if (msgsnd(queue_id, msg, sizeof(floor_to_client), 0) == -1)
+        {
+            perror("error: ");
+        }
     }
-    
-
+    free(msg);
 }
