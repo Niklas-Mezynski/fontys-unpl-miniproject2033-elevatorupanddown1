@@ -35,10 +35,11 @@ pthread_t clientThread;
 
 void startFloors()
 {
-    queue_id = msgget(QUEUE_ID, IPC_CREAT | 0600);
-    pthread_create(&clientThread, NULL, floorClient, NULL);
-    initializeFloors();
-    pthread_join(clientThread, NULL);
+    initializeSocket();
+    // queue_id = msgget(QUEUE_ID, IPC_CREAT | 0600);
+    // pthread_create(&clientThread, NULL, floorClient, NULL);
+    // initializeFloors();
+    // pthread_join(clientThread, NULL);
     // pthread_join(clientThread, NULL);
 }
 
@@ -74,7 +75,7 @@ void initializeSocket() {
     struct sockaddr_in servaddr, cli;
 
     client_to_manager* msgToManager = (client_to_manager*)malloc(sizeof(client_to_manager));
-    msgToManager->floorID = 3;
+    msgToManager->floorID = 2;
     msgToManager->noPeople = 6;
     // socket create and verification
     sockfd = socket(AF_INET, SOCK_STREAM, 0);

@@ -48,6 +48,13 @@ typedef struct
     int floor;  // The floor the elevator should move to next
 } elevator_to_manager;
 
+// Server message transfer from client to the manager
+typedef struct 
+{
+    int floorID;
+    int noPeople;
+} client_to_manager;
+
 /*
     Initializes the elevators and creates a thread for each one of them
     - Argument(s): targetElevators: an array of elevator pointers which stores the elevator structs

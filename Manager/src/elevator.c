@@ -18,10 +18,10 @@ int queue_id;
 */
 
 /*  THIS ONE IS CURRENTLY IN USE
-       1ms ticks -> 1 sec
-      60ms ticks -> 1 min
-    3600ms ticks -> 1 hour
-   86400ms ticks -> 24 hours
+       1ms -> 1 sec
+      60ms -> 1 min
+    3600ms -> 1 hour
+   86400ms -> 24 hours
 */
 
 void *start(void *thisElevatorArg)
@@ -71,7 +71,7 @@ void *start(void *thisElevatorArg)
             pthread_mutex_lock(&queue_lock);
             deleteLL(targetFloorQueue);
             pthread_mutex_unlock(&queue_lock);
-            printf("Elevator %d will now move to floor %d\n", thisElevator->id, thisElevator->nextTargetFloor);
+            printf("Elevator %d will now move to floor %d\t\t\t%f\n", thisElevator->id, thisElevator->nextTargetFloor, clockToMillis(0, clock()));
             last_move = clock();
         }
 
@@ -79,13 +79,13 @@ void *start(void *thisElevatorArg)
         // if (thisElevator->nextTargetFloor != -1 && targetFloorHeight - 0.1 < thisElevator->height < targetFloorHeight * 4.5 + 0.1)
         if (thisElevator->nextTargetFloor != -1 && thisElevator->height > targetFloorHeight - 0.1 && thisElevator->height < targetFloorHeight + 0.1)
         {
-            printf("Elevator %d is now picking up people from floor %d\n", thisElevator->id, thisElevator->nextTargetFloor);
+            printf("Elevator %d is now picking up people from floor %d\t%f\n", thisElevator->id, thisElevator->nextTargetFloor, clockToMillis(0, clock()));
             // Update the values of the elevator
             thisElevator->height = targetFloorHeight;
             thisElevator->nextTargetFloor = -1;
             // TODO take all people from that floor and message the manager
 
-            //Sleep for 3 "seconds" (time people need to quit the elevator)
+            // Sleep for 3 "seconds" (time people need to quit the elevator)
             usleep(3 * MILLI_TO_MICRO);
             last_move = clock();
             continue;
@@ -127,7 +127,7 @@ void *recieve_messages(void *messageThreadArgs)
             perror("Elevator recieve error");
             exit(1);
         }
-        printf("Elevator %d recieved message to visit floor %d\tTime: %fms\n", thisElevator->id, msg->floor, clockToMillis(0, clock()));
+        // printf("Elevator %d recieved message to visit floor %d\tTime: %fms\n", thisElevator->id, msg->floor, clockToMillis(0, clock()));
 
         // Add the message to the tail of the floor queue
         pthread_mutex_lock(queue_lock);
@@ -189,14 +189,14 @@ void moveElevatorAlt(elevator *thisElevator, clock_t *last_move)
 {
     // Calculate distance to floor 0
     double targetFloorHeight = thisElevator->nextTargetFloor * 4.5;
-
+    double move_diff = clockToMillis(*last_move, clock());
+    *last_move = clock();
     if (thisElevator->height < targetFloorHeight)
     {
-        thisElevator->height += ELEVATOR_SPEED * clockToMillis(*last_move, clock());
+        thisElevator->height += ELEVATOR_SPEED * move_diff;
     }
     else if (thisElevator->height > targetFloorHeight)
     {
-        thisElevator->height -= ELEVATOR_SPEED * clockToMillis(*last_move, clock());
+        thisElevator->height -= ELEVATOR_SPEED * move_diff;
     }
-    *last_move = clock();
 }
