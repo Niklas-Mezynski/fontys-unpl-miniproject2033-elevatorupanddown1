@@ -3,6 +3,8 @@
 
 #include "LL.h"
 
+#define QUEUE_ID 1
+
 //struct for each floor
 typedef struct
 {
@@ -24,9 +26,17 @@ struct message
 //struct to tell the manager how many people there are and at which floor  
 typedef struct
 {
-    int waitingPeople;
-    int floorID;  
-} floor_to_manager;
+    long mtype;
+    int floorID;
+    int noPeople;  
+} floor_to_client;
+
+typedef struct
+{
+    long mtype;
+    int floorID;
+    //int noPeople;  
+} client_to_floor;
 
 void* start();
 
