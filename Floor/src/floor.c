@@ -11,7 +11,6 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-#include <unistd.h>
 #include <sys/msg.h>
 #include <sys/ipc.h>
 #include "math.h"
@@ -40,7 +39,6 @@ void startFloors()
     pthread_create(&clientThread, NULL, floorClient, NULL);
     initializeFloors();
     pthread_join(clientThread, NULL);
-
     // pthread_join(clientThread, NULL);
 }
 
@@ -72,9 +70,12 @@ void initializeFloors()
 }
 
 void initializeSocket() {
-    int connfd;
+    int connfd, client_fd;
     struct sockaddr_in servaddr, cli;
 
+    client_to_manager* msgToManager = (client_to_manager*)malloc(sizeof(client_to_manager));
+    msgToManager->floorID = 3;
+    msgToManager->noPeople = 6;
     // socket create and verification
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
@@ -91,14 +92,16 @@ void initializeSocket() {
     servaddr.sin_port = htons(PORT);
 
     // connect the client socket to server socket
-    if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) {
+    if (client_fd = connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) {
         printf("connection with the server failed...\n");
         exit(0);
     }
     else
         printf("connected to the server..\n");
 
-
+    send(sockfd, msgToManager, sizeof(client_to_manager), 0);
+    printf("message send");
+    close(client_fd);
 }
 
 void *floorClient()
@@ -134,9 +137,10 @@ void *start(void *floorArguments)
         usleep(nexp());
         // sleep(1);
         // add a person to the mailbox so the floor client can send it to the manager
-
+        
         msg->mtype = 1;
-        msg->floorID = 1;
+        msg->floorID = floor->floorID;
+        // msg->floorID = 1;
         msg->noPeople = 1;
 
         if (msgsnd(queue_id, msg, sizeof(floor_to_client), 0) == -1)

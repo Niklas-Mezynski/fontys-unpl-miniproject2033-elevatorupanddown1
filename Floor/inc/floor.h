@@ -12,10 +12,11 @@ typedef struct
     int no_apartments;
 } floorStruct;
 
-struct message
+typedef struct 
 {
-    
-};
+    int floorID;
+    int noPeople;
+} client_to_manager;
 
 // typedef struct
 // {
@@ -23,7 +24,7 @@ struct message
 //     floorStruct *floor;
 // } person;
 
-//struct to tell the manager how many people there are and at which floor  
+//struct to tell the client how many people there are and at which floor  
 typedef struct
 {
     long mtype;
@@ -45,6 +46,9 @@ void initializeFloors();
 
 //starting a loop for comunication with manager
 void* floorClient();
+
+//init socket and build connection
+void initializeSocket();
 
 //start producing of residents of a floor
 void startFloors();
