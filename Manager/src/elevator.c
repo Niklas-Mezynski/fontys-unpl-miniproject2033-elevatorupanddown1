@@ -9,8 +9,7 @@
 #include "elevator.h"
 #include "LL.h"
 
-int rec_queue_id;
-int send_queue_id;
+int queue_id;
 /*
        1000 ticks -> 1 sec
       60000 ticks -> 1 min
@@ -30,9 +29,8 @@ void *start(void *thisElevatorArg)
     // Get the elevator from the arg
     elevator *thisElevator = (elevator *)thisElevatorArg;
 
-    // Initialize the mailboxes
-    // initMsgQueue(&send_queue_id, QUEUE_ID_ELEVATOR_TO_MANAGER, IPC_CREAT | 0600);
-    initMsgQueue(&rec_queue_id, QUEUE_ID_MANAGER_TO_ELEVATOR, 0);
+    // Initialize the mailboxe
+    initMsgQueue(&queue_id, QUEUE_ID, 0);
 
     // Queue for storing the floors the elevator needs to reach
     LinkedList *targetFloorQueue = (LinkedList *)malloc(sizeof(LinkedList));
@@ -124,12 +122,12 @@ void *recieve_messages(void *messageThreadArgs)
     {
         // printf("Snens\n");
         // Recieve messages
-        if (msgrcv(rec_queue_id, msg, sizeof(manager_to_elevator), (thisElevator->id + 1), 0) < 0)
+        if (msgrcv(queue_id, msg, sizeof(manager_to_elevator), (thisElevator->id + 1), 0) < 0)
         {
             perror("Elevator recieve error");
             exit(1);
         }
-        printf("Elevator %d recieved message to visit floor %d   %f\n", thisElevator->id, msg->floor, clockToMillis(0, clock()));
+        printf("Elevator %d recieved message to visit floor %d\tTime: %fms\n", thisElevator->id, msg->floor, clockToMillis(0, clock()));
 
         // Add the message to the tail of the floor queue
         pthread_mutex_lock(queue_lock);

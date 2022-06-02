@@ -21,14 +21,12 @@ clock_t start_t;
 elevator *elevators[NO_ELEVATORS];
 pthread_t elevator_threads[NO_ELEVATORS];
 pthread_t manager_thread;
-int send_queue_id;
-int rec_queue_id;
+int queue_id;
 
 void startManager()
 {
     // Initialize a message queue for message exchange between elevators and manager
-    initMsgQueue(&send_queue_id, QUEUE_ID_MANAGER_TO_ELEVATOR, IPC_CREAT | 0600);
-    // initMsgQueue(&rec_queue_id, QUEUE_ID_ELEVATOR_TO_MANAGER, 0);
+    initMsgQueue(&queue_id, QUEUE_ID, IPC_CREAT | 0600);
 
     // Start the elevators (and it's threads)
     initialzeElevators();
@@ -55,8 +53,6 @@ void *managerLoop()
     char msg_buffer[BUFFER_SIZE];
     int recv_size;
     time_t rec_time;
-    // To store current information about a queue
-    struct msqid_ds *queueInfos = (struct msqid_ds *)malloc(sizeof(struct msqid_ds));
 
     /*
     //Start the server and recieve a client connection
@@ -84,20 +80,21 @@ void *managerLoop()
 
     while (1)
     {
-        usleep(rand() % 200 + 50 * MILLI_TO_MICRO);
+        usleep((rand() % 200 + 100) * MILLI_TO_MICRO);
 
         // Check for incoming messages by the
-        if (checkIncomingMsgs(queueInfos, rec_msg))
+        if (checkIncomingMsgs(rec_msg))
         {
             // Do something with the message (send it to the floor)
+            // TODO
         }
 
-        // if (rand() % 10 != 0)
-        //     continue;
+        if (rand() % 10 != 0)
+            continue;
         // Sometimes, randomly spawn a person on a random floor
         msg->mtype = (rand() % NO_ELEVATORS) + 1;
         msg->floor = (rand() % NO_FLOORS);
-        if (msgsnd(send_queue_id, msg, sizeof(manager_to_elevator), 0) == -1)
+        if (msgsnd(queue_id, msg, sizeof(manager_to_elevator), 0) == -1)
         {
             error_exit("Message send error");
             // perror("Message send error");
@@ -108,24 +105,11 @@ void *managerLoop()
     return EXIT_SUCCESS;
 }
 
-bool checkIncomingMsgs(struct msqid_ds *queueInfos, elevator_to_manager *msg_out)
+bool checkIncomingMsgs(elevator_to_manager *msg_out)
 {
-    // msgctl(rec_queue_id, IPC_STAT, queueInfos);
-    // // Check if there are any messages in the queue, if not return
-    // if (queueInfos->msg_qnum <= 0)
-    // {
-    //     return false;
-    // }
-    // // If there are any -> copy them to the msg_out
-    // if (msgrcv(rec_queue_id, msg_out, sizeof(elevator_to_manager), 1, 0) == -1)
-    // {
-    //     error_exit("Manager: error recieving messages from elevators");
-    //     return false;
-    // }
-    // return true;
 
     // IPC_NOWAIT returns an error if there are no messages
-    if (msgrcv(rec_queue_id, msg_out, sizeof(elevator_to_manager), 1, IPC_NOWAIT) == -1)
+    if (msgrcv(queue_id, msg_out, sizeof(elevator_to_manager), -1, IPC_NOWAIT) == -1)
     {
         return false;
     }
@@ -189,10 +173,9 @@ void initMsgQueue(int *target_queue_id, int custom_queue_id, int flag)
     // create a public message queue, with access only to the owning user
     // *target_queue_id = msgget(custom_queue_id, IPC_CREAT | 0600);
     *target_queue_id = msgget(custom_queue_id, flag);
-    if (send_queue_id == -1)
+    if (queue_id == -1)
     {
-        perror("Manager: error creating the msg queue with msgget");
-        exit(1);
+        error_exit("Manager: error creating the msg queue with msgget");
     }
 }
 

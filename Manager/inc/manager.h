@@ -15,8 +15,7 @@
 #define BUFFER_SIZE 128 // Buffer size for incoming messages
 
 // MessageQueue defs
-#define QUEUE_ID_MANAGER_TO_ELEVATOR 1
-#define QUEUE_ID_ELEVATOR_TO_MANAGER 2
+#define QUEUE_ID 187    // MsgType
 #define MAX_MSG_SIZE 64
 #define NUM_MESSAGES 15
 
@@ -27,9 +26,7 @@
 // Different types of messages
 typedef enum
 {
-    m1,
-    m2
-    //...
+    elevatorToClient = -1
 } MessageType;
 
 // Struct for sending information packets between the clients and server
@@ -82,11 +79,10 @@ void initMsgQueue(int *target_queue_id, int custom_queue_id, int flag);
 
 /*
     Checks if there are any new messages in the msg input queue
-    - Argument(s):  targetqueueInfos: pointer to store queue information in
-                    msg_out: pointer where the msg should be stored (if exists)
+    - Argument(s):  msg_out: pointer where the msg should be stored (if exists)
     - returns:      true if a messages has been recieved and stored
 */
-bool checkIncomingMsgs(struct msqid_ds *queueInfos, elevator_to_manager *msg_out);
+bool checkIncomingMsgs(elevator_to_manager *msg_out);
 
 // Not implemented yet
 void handleMessage();

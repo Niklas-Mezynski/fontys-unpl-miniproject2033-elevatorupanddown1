@@ -41,6 +41,11 @@ struct messageThreadArgs
 */
 void *recieve_messages(void *messageThreadArgs);
 
+/*
+    This function moves the elevator up depending on the elevator speed and the last position update
+    - Argument(s):  thisElevator: Pointer to the elevator struct itself
+                    last_move: clock time of the last position update
+*/
 void moveElevatorAlt(elevator *thisElevator, clock_t *last_move);
 
 #endif
