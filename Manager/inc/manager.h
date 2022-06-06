@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <sys/msg.h>
+#include "elevator.h"
 
 // General case defs
 #define NO_ELEVATORS 2
@@ -15,7 +16,8 @@
 #define BUFFER_SIZE 128 // Buffer size for incoming messages
 
 // MessageQueue defs
-#define QUEUE_ID 187    // MsgType
+#define FLOOR_QUEUE_ID 187
+#define MSG_QUEUE_ID 14534
 #define MAX_MSG_SIZE 64
 #define NUM_MESSAGES 15
 
@@ -38,13 +40,12 @@ typedef struct
 
 typedef struct
 {
-    long mtype; // message type, must be > 0, contains the id + 1 of the elevatorthat the message is meant for
-    int floor;  // The floor the elevator should move to next
+    long mtype; // message type, must be > 0, indicates the target floor + 1
 } manager_to_elevator;
 
 typedef struct
 {
-    long mtype; // message type, must be > 0, contains the id + 1 of the elevatorthat the message is meant for
+    long mtype; // message type, must be > 0, contains the id + 1 of the floor where people are waiting 
     int floor;  // The floor the elevator should move to next
 } elevator_to_manager;
 
@@ -102,5 +103,7 @@ void error_exit(char *error_message);
 double clockToMillis(clock_t timeBegin, clock_t timeEnd);
 
 int getCurrentTicks();
+
+void pickupPeople(elevator* elevator, int floor);
 
 #endif

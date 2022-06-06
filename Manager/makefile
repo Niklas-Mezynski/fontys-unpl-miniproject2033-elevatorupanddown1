@@ -3,7 +3,7 @@ BUILDDIR=build
 SRCDIR=src
 INCDIR=inc
 TARGET=$(BINDIR)/manager
-ARGS=-pthread
+ARGS=-pthread  -lm
 
 DEP=$(INCDIR)/manager.h $(INCDIR)/elevator.h $(INCDIR)/LL.h
 

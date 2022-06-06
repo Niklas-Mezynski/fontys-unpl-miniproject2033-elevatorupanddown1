@@ -21,12 +21,21 @@ clock_t start_t;
 elevator *elevators[NO_ELEVATORS];
 pthread_t elevator_threads[NO_ELEVATORS];
 pthread_t manager_thread;
-int queue_id;
+int floor_queue_id, msg_queue_id;
+int peoplePerFloor[NO_FLOORS] = {0};
+
+int clearMsgQueues();
 
 void startManager()
 {
-    // Initialize a message queue for message exchange between elevators and manager
-    initMsgQueue(&queue_id, QUEUE_ID, IPC_CREAT | 0600);
+    // Initialize a message queue to store target floors for the elevators
+    initMsgQueue(&floor_queue_id, FLOOR_QUEUE_ID, IPC_CREAT | 0600);
+    // Initialize a message queue to store target floors for the elevators
+    initMsgQueue(&msg_queue_id, MSG_QUEUE_ID, IPC_CREAT | 0600);
+    clearMsgQueues();
+
+    // Init the general elevator variables
+    initElevatorsGeneral();
 
     // Start the elevators (and it's threads)
     initialzeElevators();
@@ -49,54 +58,77 @@ void startManager()
 
 void *managerLoop()
 {
+    /*
+    // For the client connection
     int client_socket;
-    client_to_manager *msg_buffer = (client_to_manager *)malloc(sizeof(client_to_manager));
-    int recv_size;
-    time_t rec_time;
+    ssize_t recv_size;
+    // For mesages recieved from the client socket sent by the floors
+    client_to_manager *rec_msg_floor = (client_to_manager *)malloc(sizeof(client_to_manager));
+    // For mesages recieved from the message queue sent by the elevator
+    elevator_to_manager *rec_msg_elevator = (elevator_to_manager *)malloc(sizeof(elevator_to_manager));
+    // For mesages that need to be send to the elevator over the msg_queue
+    manager_to_elevator *send_msg_elevator = (manager_to_elevator *)malloc(sizeof(manager_to_elevator));
 
-    // /*
     // Start the server and recieve a client connection
     initServer(&client_socket);
 
+    // Manager loop -> loops until the day is over and constantly handles the message traffic between floors and elevators
     while (1)
     {
-        // Recieve data
-        if ((recv_size = recv(client_socket, msg_buffer, sizeof(client_to_manager), 0)) < 0)
+        // Recieve data from the floor socket
+        if ((recv_size = recv(client_socket, rec_msg_floor, sizeof(client_to_manager), 0)) < 0)
             error_exit("Message recieve error");
 
         // Do something with the data (for now, just print it)
         if (recv_size > 0)
         {
-            time(&rec_time);
-            printf("Client message: %d\t%d \t%s\n", msg_buffer->floorID, msg_buffer->noPeople, ctime(&rec_time));
+            printf("Client message: %d\t%d\n", rec_msg_floor->floorID, rec_msg_floor->noPeople);
+            // Put the new target in the msg_queue so the elevators know they have to pick up people from there
+            send_msg_elevator->mtype = rec_msg_floor->floorID;
+            peoplePerFloor[rec_msg_floor->floorID] += rec_msg_floor->noPeople;
+            if (msgsnd(floor_queue_id, send_msg_elevator, sizeof(manager_to_elevator), 0) < 0)
+            {
+                error_exit("Manager: Cannot send message to elevator msg_queue");
+            }
+        }
+
+        // Check for incoming messages by the elevator
+        if (checkIncomingMsgs(rec_msg_elevator))
+        {
+            // Do something with the message (send it to the floor)
+            // TODO
         }
     }
 
     // Close the connection
     close(client_socket);
-    // */
+    free(rec_msg_floor);
+    free(rec_msg_elevator);
+    return EXIT_SUCCESS;
+    */
 
-    /*
-    // For independency between manager and floor while coding
+    // /*  For testing/debugging -> randomly send messages to the elevators
+
     manager_to_elevator *msg = (manager_to_elevator *)malloc(sizeof(manager_to_elevator));
-    elevator_to_manager *rec_msg = (elevator_to_manager *)malloc(sizeof(elevator_to_manager));
+    elevator_to_manager *rec_msg_elevator = (elevator_to_manager *)malloc(sizeof(elevator_to_manager));
 
     while (1)
     {
-        usleep((rand() % 200 + 100) * MILLI_TO_MICRO);
+        usleep((rand() % 100 + 1000) * MILLI_TO_MICRO);
         // Check for incoming messages by the
-        if (checkIncomingMsgs(rec_msg))
+        if (checkIncomingMsgs(rec_msg_elevator))
         {
             // Do something with the message (send it to the floor)
             // TODO
         }
 
-        if (rand() % 10 != 0)
-            continue;
+        // if (rand() % 10 != 0)
+        //     continue;
         // Sometimes, randomly spawn a person on a random floor
-        msg->mtype = (rand() % NO_ELEVATORS) + 1;
-        msg->floor = (rand() % NO_FLOORS);
-        if (msgsnd(queue_id, msg, sizeof(manager_to_elevator), 0) == -1)
+        msg->mtype = (rand() % NO_FLOORS) + 1;
+        peoplePerFloor[msg->mtype - 1]++;
+        printf("People spawning at floor %ld \t\t\t\t%f\n", msg->mtype - 1, clockToMillis(0, clock()));
+        if (msgsnd(floor_queue_id, msg, sizeof(manager_to_elevator), 0) == -1)
         {
             error_exit("Message send error");
             // perror("Message send error");
@@ -104,15 +136,14 @@ void *managerLoop()
         }
     }
     free(msg);
-    */
-    return EXIT_SUCCESS;
+    // */
 }
 
 bool checkIncomingMsgs(elevator_to_manager *msg_out)
 {
 
     // IPC_NOWAIT returns an error if there are no messages
-    if (msgrcv(queue_id, msg_out, sizeof(elevator_to_manager), -1, IPC_NOWAIT) == -1)
+    if (msgrcv(floor_queue_id, msg_out, sizeof(elevator_to_manager), -1, IPC_NOWAIT) == -1)
     {
         return false;
     }
@@ -168,7 +199,7 @@ int initServer(int *client_socket)
         error_exit("Accept error");
     printf("Connected with client address: %s\n", inet_ntoa(client.sin_addr));
 
-    return 1;
+    return EXIT_SUCCESS;
 }
 
 void initMsgQueue(int *target_queue_id, int custom_queue_id, int flag)
@@ -176,10 +207,44 @@ void initMsgQueue(int *target_queue_id, int custom_queue_id, int flag)
     // create a public message queue, with access only to the owning user
     // *target_queue_id = msgget(custom_queue_id, IPC_CREAT | 0600);
     *target_queue_id = msgget(custom_queue_id, flag);
-    if (queue_id == -1)
+    if (floor_queue_id == -1)
     {
         error_exit("Manager: error creating the msg queue with msgget");
     }
+}
+
+void pickupPeople(elevator *elevator, int floor)
+{
+    if (peoplePerFloor[floor] < 1)
+    {
+        printf("pickupPeople error: there are no people on that floor (%d)\n", floor);
+        exit(EXIT_FAILURE);
+    }
+    printf("Elevator %d is now picking up people from floor %d\t%f\n", elevator->id, floor, clockToMillis(0, clock()));
+
+    // Pick up the guy
+    peoplePerFloor[floor]--;
+    elevator_to_manager *msg_to_manager = (elevator_to_manager *)malloc(sizeof(elevator_to_manager));
+    msg_to_manager->mtype = 1; // 1 for msg_to_manager
+    msg_to_manager->floor = floor;
+    // Send the event to the msg queue
+    msgsnd(msg_queue_id, msg_to_manager, sizeof(elevator_to_manager), 0);
+
+    // Check if there are more people on the floor that can be picked up
+    manager_to_elevator *msg_from_manager = (manager_to_elevator *)malloc(sizeof(manager_to_elevator));
+    while (peopleInElevator(elevator) < MAX_PER_ELEVATOR && msgrcv(floor_queue_id, msg_from_manager, sizeof(manager_to_elevator), floor + 1, IPC_NOWAIT) >= 0)
+    {
+        if (peoplePerFloor[floor] < 1)
+        {
+            printf("pickupPeople error: there are no people on that floor\n");
+            exit(EXIT_FAILURE);
+        }
+        peoplePerFloor[floor]--;
+        msgsnd(msg_queue_id, msg_to_manager, sizeof(elevator_to_manager), 0);
+    }
+
+    free(msg_to_manager);
+    free(msg_from_manager);
 }
 
 void error_exit(char *error_message)
@@ -197,4 +262,18 @@ double clockToMillis(clock_t timeBegin, clock_t timeEnd)
 int getCurrentTicks()
 {
     return (clock() - start_t);
+}
+
+int clearMsgQueues()
+{
+    void *msg;
+
+    while (msgrcv(msg_queue_id, NULL, 1024, 0, IPC_NOWAIT) >= 0)
+        printf("snens\n");
+
+    msg = (manager_to_elevator *)malloc(sizeof(manager_to_elevator));
+    while (msgrcv(floor_queue_id, msg, sizeof(manager_to_elevator), 0, IPC_NOWAIT) >= 0)
+
+    free(msg);
+    return EXIT_SUCCESS;
 }
