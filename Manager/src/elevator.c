@@ -35,25 +35,25 @@ void *start(void *thisElevatorArg)
     // Queue for storing the floors the elevator needs to reach
     LinkedList *targetFloorQueue = (LinkedList *)malloc(sizeof(LinkedList));
     constructLL(targetFloorQueue);
-    // Mutex to lock queue operations
-    pthread_mutex_t queue_lock;
-    pthread_mutex_init(&queue_lock, NULL);
 
     printf("Hello from elevator %d\n", thisElevator->id);
 
     // Create another thread that is responsible for recieving messages from the manager
-    pthread_t msg_thread;
-    struct messageThreadArgs *msgThreadArgs = (struct messageThreadArgs *)malloc(sizeof(struct messageThreadArgs));
-    msgThreadArgs->thisElevator = thisElevator;
-    msgThreadArgs->targetFloorQueue = targetFloorQueue;
-    msgThreadArgs->queue_lock = &queue_lock;
-    pthread_create(&msg_thread, NULL, recieve_messages, msgThreadArgs);
+    // pthread_t msg_thread;
+    // struct messageThreadArgs *msgThreadArgs = (struct messageThreadArgs *)malloc(sizeof(struct messageThreadArgs));
+    // msgThreadArgs->thisElevator = thisElevator;
+    // msgThreadArgs->targetFloorQueue = targetFloorQueue;
+    // msgThreadArgs->queue_lock = &queue_lock;
+    // pthread_create(&msg_thread, NULL, recieve_messages, msgThreadArgs);
 
     clock_t last_move;
     double targetFloorHeight;
     // Moving loop for the elevator
     while (1)
     {
+        // Check for new tasks
+        recieve_messages(thisElevator, targetFloorQueue);
+
         // If elevator has no current target AND there is no target in the queue -> idle
         if (thisElevator->nextTargetFloor == -1 && isEmpty(targetFloorQueue))
         {
@@ -68,9 +68,7 @@ void *start(void *thisElevatorArg)
         {
             thisElevator->nextTargetFloor = targetFloorQueue->head->value;
             targetFloorHeight = thisElevator->nextTargetFloor * 4.5;
-            pthread_mutex_lock(&queue_lock);
             deleteLL(targetFloorQueue);
-            pthread_mutex_unlock(&queue_lock);
             printf("Elevator %d will now move to floor %d\t\t\t%f\n", thisElevator->id, thisElevator->nextTargetFloor, clockToMillis(0, clock()));
             last_move = clock();
         }
@@ -97,43 +95,24 @@ void *start(void *thisElevatorArg)
             // Move the elevator towards target floor
             moveElevatorAlt(thisElevator, &last_move);
             // printf("Elevator %d is moving...\n", thisElevator->id);
-
-            // Move the elevator towards the floor
-            // thisElevator->nextTargetFloor = targetFloorQueue->head->value;
-            // pthread_create(&thisElevator->movement, NULL, moveElevator, thisElevator);
-            // // Wait for moving process to finish
-            // pthread_join(thisElevator->movement, NULL);
-            // pthread_exit(thisElevator->movement);
-            // deleteLL(targetFloorQueue);
         }
     }
 }
 
-void *recieve_messages(void *messageThreadArgs)
+void recieve_messages(elevator *thisElevator, LinkedList *targetFloorQueue)
 {
-    // Retrieve the thread args
-    elevator *thisElevator = (elevator *)((struct messageThreadArgs *)messageThreadArgs)->thisElevator;
-    LinkedList *targetFloorQueue = (LinkedList *)((struct messageThreadArgs *)messageThreadArgs)->targetFloorQueue;
-    pthread_mutex_t *queue_lock = (pthread_mutex_t *)((struct messageThreadArgs *)messageThreadArgs)->queue_lock;
 
     // Struct for incoming messages
     manager_to_elevator *msg = (manager_to_elevator *)malloc(sizeof(manager_to_elevator));
-    while (1)
-    {
-        // printf("Snens\n");
-        // Recieve messages
-        if (msgrcv(queue_id, msg, sizeof(manager_to_elevator), (thisElevator->id + 1), 0) < 0)
-        {
-            perror("Elevator recieve error");
-            exit(1);
-        }
-        // printf("Elevator %d recieved message to visit floor %d\tTime: %fms\n", thisElevator->id, msg->floor, clockToMillis(0, clock()));
 
-        // Add the message to the tail of the floor queue
-        pthread_mutex_lock(queue_lock);
+    // Check for new messages
+    while (msgrcv(queue_id, msg, sizeof(manager_to_elevator), (thisElevator->id + 1), IPC_NOWAIT) >= 0)
+    {
+        // While there are messages, add them to the target floor queue
         addRearLL(targetFloorQueue, msg->floor);
-        pthread_mutex_unlock(queue_lock);
     }
+    // No (more) new messages --> return
+    free(msg);
 }
 
 // void *moveElevator(void *thisElevatorArg)

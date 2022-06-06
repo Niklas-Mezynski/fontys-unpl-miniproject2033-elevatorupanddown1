@@ -39,7 +39,7 @@ struct messageThreadArgs
     Thread function that is responsible for recieving for that elevator
     - Argument(s): messageThreadArgs: Contains a struct with the args
 */
-void *recieve_messages(void *messageThreadArgs);
+void recieve_messages(elevator *thisElevator, LinkedList *targetFloorQueue);
 
 /*
     This function moves the elevator up depending on the elevator speed and the last position update
