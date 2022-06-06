@@ -50,30 +50,33 @@ void startManager()
 void *managerLoop()
 {
     int client_socket;
-    char msg_buffer[BUFFER_SIZE];
+    client_to_manager *msg_buffer = (client_to_manager *)malloc(sizeof(client_to_manager));
     int recv_size;
     time_t rec_time;
 
-    /*
-    //Start the server and recieve a client connection
+    // /*
+    // Start the server and recieve a client connection
     initServer(&client_socket);
 
     while (1)
     {
         // Recieve data
-        if ((recv_size = recv(client_socket, msg_buffer, BUFFER_SIZE, 0)) < 0)
+        if ((recv_size = recv(client_socket, msg_buffer, sizeof(client_to_manager), 0)) < 0)
             error_exit("Message recieve error");
 
         // Do something with the data (for now, just print it)
-        msg_buffer[recv_size] = '\0';
-        time(&rec_time);
-        printf("Client message: %s \t%s\n", msg_buffer, ctime(&rec_time));
+        if (recv_size > 0)
+        {
+            time(&rec_time);
+            printf("Client message: %d\t%d \t%s\n", msg_buffer->floorID, msg_buffer->noPeople, ctime(&rec_time));
+        }
     }
 
     // Close the connection
     close(client_socket);
-    */
+    // */
 
+    /*
     // For independency between manager and floor while coding
     manager_to_elevator *msg = (manager_to_elevator *)malloc(sizeof(manager_to_elevator));
     elevator_to_manager *rec_msg = (elevator_to_manager *)malloc(sizeof(elevator_to_manager));
@@ -81,7 +84,6 @@ void *managerLoop()
     while (1)
     {
         usleep((rand() % 200 + 100) * MILLI_TO_MICRO);
-
         // Check for incoming messages by the
         if (checkIncomingMsgs(rec_msg))
         {
@@ -102,6 +104,7 @@ void *managerLoop()
         }
     }
     free(msg);
+    */
     return EXIT_SUCCESS;
 }
 
