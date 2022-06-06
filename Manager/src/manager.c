@@ -29,16 +29,16 @@ int clearMsgQueues();
 void startManager()
 {
     // Initialize a message queue to store target floors for the elevators
-    initMsgQueue(&floor_queue_id, FLOOR_QUEUE_ID, IPC_CREAT | 0600);
+    // initMsgQueue(&floor_queue_id, FLOOR_QUEUE_ID, IPC_CREAT | 0600);
     // Initialize a message queue to store target floors for the elevators
-    initMsgQueue(&msg_queue_id, MSG_QUEUE_ID, IPC_CREAT | 0600);
-    clearMsgQueues();
+    // initMsgQueue(&msg_queue_id, MSG_QUEUE_ID, IPC_CREAT | 0600);
+    // clearMsgQueues();
 
     // Init the general elevator variables
-    initElevatorsGeneral();
+    // initElevatorsGeneral();
 
     // Start the elevators (and it's threads)
-    initialzeElevators();
+    // initialzeElevators();
 
     // Safe the program start
     start_t = clock();
@@ -58,7 +58,7 @@ void startManager()
 
 void *managerLoop()
 {
-    /*
+    
     // For the client connection
     int client_socket;
     ssize_t recv_size;
@@ -105,7 +105,7 @@ void *managerLoop()
     free(rec_msg_floor);
     free(rec_msg_elevator);
     return EXIT_SUCCESS;
-    */
+    /*
 
     // /*  For testing/debugging -> randomly send messages to the elevators
 
