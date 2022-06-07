@@ -17,7 +17,7 @@ typedef struct
 {
     int id;
     double height;
-    int nextTargetFloor; // -1 if no target
+    long nextTargetFloor; // -1 if no target
     guest **guestsInside;
     pthread_t movement;
 } elevator;
@@ -31,8 +31,9 @@ typedef enum
 
 /*
     Initializes the global and shared variables for the elevator
+    - Argument(s): mutex: a mutex object used to perform operations that require thread safety
 */
-void initElevatorsGeneral();
+void initElevatorsGeneral(pthread_mutex_t *mutex);
 
 /*
     Starts the elevator (each thread is going to run that method)
@@ -59,7 +60,7 @@ void recieve_messages(elevator *thisElevator, LinkedList *targetFloorQueue);
     - Argument(s):  thisElevator: Pointer to the elevator struct itself
                     last_move: clock time of the last position update
 */
-void moveElevatorAlt(elevator *thisElevator, clock_t *last_move);
+void moveElevator(elevator *thisElevator, clock_t *last_move);
 
 /*
     Returns the number of people in the elevator

@@ -1,0 +1,17 @@
+Elevator 0 just idled for 210600
+Elevator 0 just idled for 3
+Elevator 0 just idled for 2
+Elevator 0 just idled for 3
+Elevator 0 just idled for 2
+Elevator 0 just idled for 3
+Elevator 0 just idled for 2
+Elevator 0 just idled for 2
+Elevator 0 just idled for 3
+Elevator 0 just idled for 2
+Elevator 0 just idled for 3
+
+----TOTAL IDLE TIMES----
+Elevator 0 total waiting time 210625 | Number of idles 11 | Avg idle time 19147.727273
+
+----TOTAL IDLE TIMES (devided by 1000)----
+Elevator 0 total waiting time 210 | Number of idles 11 | Avg idle time 19.147727
