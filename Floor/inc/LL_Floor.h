@@ -1,14 +1,23 @@
-#ifndef LL_H
-#define LL_H
+#ifndef LL_FlOOR_H
+#define LL_FLOOR_H
 
 #include "stdbool.h"
 
+typedef struct
+{
+    //char *timestapmt;
+    int floorID;
+    // int noPeople;
+    // int waitingTime;
+} fInfo;
+
 struct Snode
 {
-    int value;
+    fInfo* value;
     struct Snode *next;
 };
 typedef struct Snode node;
+
 
 struct list
 {
@@ -17,10 +26,10 @@ struct list
 };
 typedef struct list LinkedList;
 
-void addFrontLL(LinkedList *list, int number);
+void addFrontLL(LinkedList *list, fInfo* info);
 void constructLL(LinkedList *list);
 void printLL(LinkedList *list);
-void addRearLL(LinkedList *list, int number);
+void addRearLL(LinkedList *list, fInfo* info);
 bool isEmpty(LinkedList *list);
 int numbInLL(LinkedList *list);
 // Deletes the front element

@@ -1,7 +1,7 @@
 #ifndef __FLOOR
 #define __FLOOR
 
-#include "LL.h"
+#include "LL_Floor.h"
 
 #define QUEUE_ID 1
 #define MILLI_TO_MICRO 1000
@@ -39,6 +39,13 @@ typedef struct
     //int noPeople;  
 } floor_to_client;
 
+//struct to pass as argument for subthread in start(elevatormethod)
+typedef struct
+{
+    int floorID;
+    LinkedList* list; 
+} subThreadStruct;
+
 typedef struct
 {
     long mtype;
@@ -63,13 +70,14 @@ void initializeFloors();
 //starting a loop for comunication with manager
 void* floorServer();
 
-void* floorClient();
-
 //init socket and build connection
 void initializeSocket();
 
 //start producing of residents of a floor
 void startFloors();
+
+//subthread for recieving msg from manager
+void* floorMessageReceive(void* args);
 
 double clockToMillis(clock_t timeBegin, clock_t timeEnd);
 

@@ -5,9 +5,9 @@ INCDIR=inc
 TARGET=$(BINDIR)/floor
 ARGS=-pthread -lm
 
-DEP=$(INCDIR)/floor.h $(INCDIR)/random.h $(INCDIR)/LL.h
+DEP=$(INCDIR)/floor.h $(INCDIR)/random.h $(INCDIR)/LL_Floor.h
 
-OBJECTS=$(BUILDDIR)/floor.o $(BUILDDIR)/random.o $(BUILDDIR)/LL.o $(BUILDDIR)/main.o 
+OBJECTS=$(BUILDDIR)/floor.o $(BUILDDIR)/random.o $(BUILDDIR)/LL_Floor.o $(BUILDDIR)/main.o 
 
 CC=gcc
 CFLAGS=-I.
