@@ -19,6 +19,9 @@ $(TARGET): $(OBJECTS)
 $(BUILDDIR)/%.o: $(SRCDIR)/%.c $(DEP)
 	$(CC) -I $(INCDIR) -c $< -o $@
 
+valgrind:
+	$(CC) $(OBJECTS) -o $(BINDIR)/managerDebug $(ARGS) -g -O0
+
 clean:
 	@echo "cleaning..."
 	rm $(BUILDDIR)/*

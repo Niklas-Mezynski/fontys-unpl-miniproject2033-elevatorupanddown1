@@ -6,7 +6,7 @@
 #include "elevator.h"
 
 // General case defs
-#define NO_ELEVATORS 2
+#define NO_ELEVATORS 1
 #define NO_FLOORS 10
 #define NO_APPS_PER_FLOOR 10
 
@@ -20,41 +20,46 @@
 #define MSG_QUEUE_ID 14534
 #define MAX_MSG_SIZE 64
 #define NUM_MESSAGES 15
+#define ELEVATOR_TO_MANAGER_MTYPE 2
+#define LOGGER_THREAD_MTYPE 187
 
 // Helpers
 #define MILLI_TO_MICRO 1000
 
-
-// Different types of messages
-typedef enum
-{
-    elevatorToClient = -1
-} MessageType;
-
-// Struct for sending information packets between the clients and server
-typedef struct
-{
-    MessageType mType;
-    char mBuffer[BUFFER_SIZE];
-} dataPacket;
-
 typedef struct
 {
     long mtype; // message type, must be > 0, indicates the target floor + 1
+                // can add other attributes
 } manager_to_elevator;
 
 typedef struct
 {
-    long mtype; // message type, must be > 0, contains the id + 1 of the floor where people are waiting 
+    long mtype; // message type, must be > 0, contains the id + 1 of the floor where people are waiting
     int floor;  // The floor the elevator should move to next
 } elevator_to_manager;
 
+typedef enum
+{
+    StartIdle,  // An elevator starts to idle
+    StopIdle     // An elevator starts to move again (stop idling)
+} LoggerInfo;
+
 // Server message transfer from client to the manager
-typedef struct 
+typedef struct
+{
+    long mtype;         // message type, must be > 0, contains the id + 1 of the floor where people are waiting
+    LoggerInfo info;    // Stores the type of event the logger has to handle
+    clock_t time;
+    int elevator_id;
+} logger_message;
+
+// Server message transfer from client to the manager
+typedef struct
 {
     int floorID;
     int noPeople;
 } client_to_manager;
+
 
 /*
     Initializes the elevators and creates a thread for each one of them
@@ -104,6 +109,8 @@ double clockToMillis(clock_t timeBegin, clock_t timeEnd);
 
 int getCurrentTicks();
 
-void pickupPeople(elevator* elevator, int floor);
+void pickupPeople(elevator *elevator, long floor);
+
+void *loggerThread();
 
 #endif
