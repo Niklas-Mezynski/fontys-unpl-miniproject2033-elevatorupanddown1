@@ -53,7 +53,6 @@ void startManager()
     }
     // Wait for the manager thread
     pthread_join(manager_thread, NULL);
-    // Start counting clock ticks
 }
 
 void *managerLoop()
@@ -112,9 +111,9 @@ void *managerLoop()
     manager_to_elevator *msg = (manager_to_elevator *)malloc(sizeof(manager_to_elevator));
     elevator_to_manager *rec_msg_elevator = (elevator_to_manager *)malloc(sizeof(elevator_to_manager));
 
-    while (1)
+    for (size_t i = 0; i < 15; i++)
     {
-        usleep((rand() % 100 + 1000) * MILLI_TO_MICRO);
+        // usleep((rand() % 100 + 100) * MILLI_TO_MICRO);
         // Check for incoming messages by the
         if (checkIncomingMsgs(rec_msg_elevator))
         {
@@ -127,7 +126,7 @@ void *managerLoop()
         // Sometimes, randomly spawn a person on a random floor
         msg->mtype = (rand() % NO_FLOORS) + 1;
         peoplePerFloor[msg->mtype - 1]++;
-        printf("People spawning at floor %ld \t\t\t\t%f\n", msg->mtype - 1, clockToMillis(0, clock()));
+        // printf("People spawning at floor %ld \t\t\t\t%f\n", msg->mtype - 1, clockToMillis(0, clock()));
         if (msgsnd(floor_queue_id, msg, sizeof(manager_to_elevator), 0) == -1)
         {
             error_exit("Message send error");
@@ -136,6 +135,12 @@ void *managerLoop()
         }
     }
     free(msg);
+    sleep(8);
+    for (int j = 0; j < NO_FLOORS; j++)
+    {
+        printf("Remaining ppl at floor %d: %d\n", j, peoplePerFloor[j]);
+    }
+
     // */
 }
 
@@ -239,6 +244,8 @@ void pickupPeople(elevator *elevator, int floor)
             printf("pickupPeople error: there are no people on that floor\n");
             exit(EXIT_FAILURE);
         }
+        printf("Elevator %d is now picking up people from floor %d\t%f\n", elevator->id, floor, clockToMillis(0, clock()));
+
         peoplePerFloor[floor]--;
         msgsnd(msg_queue_id, msg_to_manager, sizeof(elevator_to_manager), 0);
     }
@@ -266,14 +273,12 @@ int getCurrentTicks()
 
 int clearMsgQueues()
 {
-    void *msg;
-
     while (msgrcv(msg_queue_id, NULL, 1024, 0, IPC_NOWAIT) >= 0)
         printf("snens\n");
 
-    msg = (manager_to_elevator *)malloc(sizeof(manager_to_elevator));
+    manager_to_elevator *msg = (manager_to_elevator *)malloc(sizeof(manager_to_elevator));
     while (msgrcv(floor_queue_id, msg, sizeof(manager_to_elevator), 0, IPC_NOWAIT) >= 0)
 
-    free(msg);
+        free(msg);
     return EXIT_SUCCESS;
 }
