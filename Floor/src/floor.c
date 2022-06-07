@@ -16,7 +16,7 @@
 #include "math.h"
 #include "floor.h"
 #include "random.h"
-#include "LL_Floor.h"
+// #include "LL_Floor.h"
 
 #define NO_FLOORS 3
 #define NO_APARTMENTS 3
@@ -222,7 +222,7 @@ void *start(void *floorArguments)
 
     pthread_t floorSubThread;
     pthread_create(&floorSubThread, NULL, floorMessageReceive, sub);
-    pthread_join(&floorSubThread, NULL);
+    pthread_join(floorSubThread, NULL);
 
     while (1)
     {
