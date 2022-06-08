@@ -20,7 +20,7 @@
 #define MSG_QUEUE_ID 14534
 #define MAX_MSG_SIZE 64
 #define NUM_MESSAGES 15
-#define ELEVATOR_TO_MANAGER_MTYPE 2
+#define ELEVATOR_TO_MANAGER_MTYPE 999
 #define LOGGER_THREAD_MTYPE 187
 
 // Helpers
@@ -34,8 +34,9 @@ typedef struct
 
 typedef struct
 {
-    long mtype; // message type = ELEVATOR_TO_MANAGER_MTYPE to specify which struct to recieve
-    int floor;  // The floor on which the elevator picked up someone
+    long mtype;     // message type = ELEVATOR_TO_MANAGER_MTYPE to specify which struct to recieve
+    int floor;      // The floor on which the elevator picked up someone
+    int noOfPeople; // No of people picked up from that floor
 } elevator_to_manager;
 
 typedef enum

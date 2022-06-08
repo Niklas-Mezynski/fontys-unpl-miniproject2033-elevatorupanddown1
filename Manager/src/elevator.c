@@ -93,7 +93,7 @@ void *start(void *thisElevatorArg)
             {
                 // Set the target floor
                 thisElevator->nextTargetFloor = msg_from_manager->mtype - 2;
-                printf("Elevator %d target floor: %ld\n", thisElevator->id, thisElevator->nextTargetFloor);
+                // printf("Elevator %d target floor: %ld\n", thisElevator->id, thisElevator->nextTargetFloor);
                 targetFloorHeight = thisElevator->nextTargetFloor * FLOOR_HEIGHT;
             }
             else

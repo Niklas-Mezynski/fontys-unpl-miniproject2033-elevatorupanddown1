@@ -109,7 +109,7 @@ void *managerLoop()
         // Send the recieved data to the elevators
         if (recv_size > 0)
         {
-            printf("Client recieved message - spawn event on floor %d\n", rec_msg_floor->floorID);
+            // printf("Client recieved message - spawn event on floor %d\n", rec_msg_floor->floorID);
             // Put the new target in the msg_queue so the elevators know they have to pick up people from there
             send_msg_elevator->mtype = (rec_msg_floor->floorID + 2);
             send_msg_elevator->destFloor = 0;
@@ -123,11 +123,12 @@ void *managerLoop()
         }
 
         // Check for incoming messages from the elevators
-        if (checkIncomingMsgs(rec_msg_elevator))
+        if (msgrcv(msg_queue_id, rec_msg_elevator, sizeof(elevator_to_manager) - sizeof(long), ELEVATOR_TO_MANAGER_MTYPE, IPC_NOWAIT) >= 0)
         {
             // Do something with the message (send it to the floor)
             send_msg_floor->floorID = rec_msg_elevator->floor;
-            send_msg_floor->noPeopleInElevator = 1;
+            send_msg_floor->noPeopleInElevator = rec_msg_elevator->noOfPeople;
+            // printf("Sending msg with floorID %d and noPeople %d\n", send_msg_floor->floorID, send_msg_floor->noPeopleInElevator);
             if (send(client_socket, send_msg_floor, sizeof(manager_to_client), IPC_NOWAIT) < 0)
             {
                 error_exit("Send message to client socket error");
@@ -208,7 +209,7 @@ bool checkIncomingMsgs(elevator_to_manager *msg_out)
 {
 
     // IPC_NOWAIT returns an error if there are no messages
-    if (msgrcv(floor_queue_id, msg_out, sizeof(elevator_to_manager) - sizeof(long), -1, IPC_NOWAIT) == -1)
+    if (msgrcv(floor_queue_id, msg_out, sizeof(elevator_to_manager) - sizeof(long), ELEVATOR_TO_MANAGER_MTYPE, IPC_NOWAIT) < 0)
     {
         return false;
     }
@@ -302,10 +303,13 @@ void pickupPeople(elevator *elevator, long floor)
     peoplePerFloor[floor]--;
     pthread_mutex_unlock(&mutex);
     elevator_to_manager *msg_to_manager = (elevator_to_manager *)malloc(sizeof(elevator_to_manager));
+    if (msg_to_manager < 0)
+    {
+        error_exit("malloc");
+    }
     msg_to_manager->mtype = ELEVATOR_TO_MANAGER_MTYPE;
     msg_to_manager->floor = floor;
-    // Send the event to the msg queue
-    msgsnd(msg_queue_id, msg_to_manager, sizeof(elevator_to_manager) - sizeof(long), 0);
+    msg_to_manager->noOfPeople = 1;
 
     // Check if there are more people on the floor that can be picked up
     manager_to_elevator *msg_from_manager = (manager_to_elevator *)malloc(sizeof(manager_to_elevator));
@@ -322,7 +326,14 @@ void pickupPeople(elevator *elevator, long floor)
         pthread_mutex_lock(&mutex);
         peoplePerFloor[floor]--;
         pthread_mutex_unlock(&mutex);
-        msgsnd(msg_queue_id, msg_to_manager, sizeof(elevator_to_manager) - sizeof(long), 0);
+        msg_to_manager->noOfPeople++;
+    }
+
+    // Send the event to the msg queue
+
+    if (msgsnd(msg_queue_id, msg_to_manager, sizeof(elevator_to_manager) - sizeof(long), IPC_NOWAIT) < 0)
+    {
+        error_exit("pickup people cannot send msg error");
     }
 
     free(msg_to_manager);
