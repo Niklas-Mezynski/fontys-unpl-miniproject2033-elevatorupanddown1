@@ -134,7 +134,7 @@ void *start(void *thisElevatorArg)
             thisElevator->nextTargetFloor = -1;
 
             // Sleep for 3 "seconds" (time people need to quit the elevator)
-            usleep(3 * MILLI_TO_MICRO);
+            usleep(3 );
             last_move = clock();
             continue;
         }
@@ -143,7 +143,7 @@ void *start(void *thisElevatorArg)
         if (interruptFloor != -1)
         {
             // Deacceleration time
-            usleep(3 * MILLI_TO_MICRO);
+            usleep(3 );
             thisElevator->height = interruptFloor * FLOOR_HEIGHT;
             // Pickup the people
             // pthread_mutex_lock(&mutex);
@@ -151,7 +151,7 @@ void *start(void *thisElevatorArg)
             // pthread_mutex_unlock(&mutex);
 
             // Sleep for 3 "seconds" (time people need to quit the elevator)
-            usleep(3 * MILLI_TO_MICRO);
+            usleep(3 );
             last_move = clock();
         }
 

@@ -40,6 +40,14 @@ typedef struct
     //int noPeople;  
 } floor_to_client;
 
+//send info to logger thread
+typedef struct
+{
+    long mtype;
+    int floorID;
+    clock_t timeDidd;
+} infoToLogger;
+
 //struct to pass as argument for subthread in start(elevatormethod)
 typedef struct
 {
@@ -56,8 +64,7 @@ typedef struct
 
 typedef struct
 {
-    long mtype;
-    int floorID;
+    long mtype; //type = floorid + 2
     int noPeople;  
 } msgFromManagerToFloor;
 
@@ -79,6 +86,8 @@ void startFloors();
 
 //subthread for recieving msg from manager
 void* floorMessageReceive(void* args);
+
+void* loggerThreadToFile();
 
 double clockToMillis(clock_t timeBegin, clock_t timeEnd);
 

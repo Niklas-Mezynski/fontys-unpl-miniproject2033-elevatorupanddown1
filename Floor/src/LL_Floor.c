@@ -21,13 +21,13 @@ void printLL(LinkedList *list)
     {
         i++;
         
-        printf("%d. Element in the list: %d\n", i, current->value->floorID);
+        // printf("%d. Element in the list: %d\n", i, current->value->floorID);
         // printf("%d. Element in the list: %d\n", i, current->value);
         current = current->next;
     }
 }
 
-void addFrontLL(LinkedList *list, fInfo* info)
+void addFrontLL(LinkedList *list, person* info)
 {
     node *newNode;
     newNode = (node *)malloc(sizeof(node));
@@ -37,7 +37,7 @@ void addFrontLL(LinkedList *list, fInfo* info)
     list->head = newNode;
 }
 
-void addRearLL(LinkedList *list, fInfo* info)
+void addRearLL(LinkedList *list, person* info)
 {
     node *tail = list->head;
     node *current = list->head;

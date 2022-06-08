@@ -16,6 +16,7 @@
 #include "math.h"
 #include "floor.h"
 #include "random.h"
+#include "stdbool.h"
 // #include "LL_Floor.h"
 
 #define NO_FLOORS 10
@@ -27,6 +28,8 @@
 int sockfd, client_fd;
 int queue_id, queue_id_2;
 
+bool simulationRunning = true;
+
 int counterFloor;
 
 time_t record_time;
@@ -37,7 +40,7 @@ pthread_t threads[NO_FLOORS];
 // person *persons[NO_APARTMENTS];
 
 pthread_t clientThread;
-pthread_t serverThread;
+pthread_t serverThread, loggerThread;
 
 pthread_mutex_t mutex;
 // LinkedList *floorRecord = (LinkedList*)malloc(sizeof(LinkedList));
@@ -45,17 +48,19 @@ pthread_mutex_t mutex;
 void startFloors()
 {
     initializeSocket();
+    pthread_mutex_init(&mutex, NULL);
     queue_id = msgget(QUEUE_ID, IPC_CREAT | 0600);
     queue_id_2 = msgget(QUEUE_ID_2, IPC_CREAT | 0600);
     //  printf("problem");
     pthread_create(&serverThread, NULL, floorServer, NULL);
     pthread_create(&clientThread, NULL, floorClient, NULL);
+    pthread_create(&loggerThread, NULL, loggerThreadToFile, NULL);
     // printf("test");
     initializeFloors();
     pthread_join(serverThread, NULL);
     // pthread_create(&clientThread, NULL, floorClient, NULL);
+    pthread_join(loggerThread, NULL);
     pthread_join(clientThread, NULL);
-    pthread_mutex_init(&mutex, NULL);
 }
 
 void initializeFloors()
@@ -84,6 +89,7 @@ void initializeFloors()
     {
         pthread_join(threads[i], NULL);
     }
+    printf("floors beendet");
 }
 
 void initializeSocket()
@@ -133,7 +139,7 @@ void *floorClient()
     msgFromManagerToFloor *msgToFloor = (msgFromManagerToFloor *)malloc(sizeof(msgFromManagerToFloor));
 
     int rc;
-    while (1)
+    while (simulationRunning)
     {
         if ((rc = recv(sockfd, msgFromManager, sizeof(msgFromManager), 0)) < 0)
             perror("Message recieve error");
@@ -143,7 +149,7 @@ void *floorClient()
             time(&record_time);
             printf("Message from server: %d\t%d \t%s\n", msgFromManager->floorID, msgFromManager->noPeopleInElevator, ctime(&record_time));
 
-            msgToFloor->mtype = msgFromManager->floorID + 1;
+            msgToFloor->mtype = msgFromManager->floorID + 2;
             // to which Floor the message should go
             // how many people the elevator will pick up
             msgToFloor->noPeople = msgFromManager->noPeopleInElevator;
@@ -153,25 +159,20 @@ void *floorClient()
             }
         }
     }
+    printf("floorclient beendet\n");
 }
 
 void *floorServer()
 {
     int i = 0;
     int counter = 0;
-    remove("data.txt");
-    FILE *file;
-    file = fopen("data.txt", "w");
-    if (file == NULL)
-    {
-        printf("error");
-    }
+    
     // TODO recieve and send
     client_to_manager *msgToManager = (client_to_manager *)malloc(sizeof(client_to_manager));
 
     client_to_floor *msg = (client_to_floor *)malloc(sizeof(client_to_floor));
     int rc;
-    while (1)
+    while (simulationRunning)
     {
         // printf("error");
         pthread_mutex_lock(&mutex);
@@ -186,7 +187,6 @@ void *floorServer()
             // sleep(2);
             // printf("Send at:\t%s\n", ctime(&record_time));
             printf("Send msg to manager: %d\n", msgToManager->floorID);
-            fprintf(file, "%s", ctime(&record_time));
 
             // addFrontLL(floorRecord, i);
             counter++;
@@ -196,7 +196,7 @@ void *floorServer()
     }
     // printLL(floorRecord);
     // printf("messages send\n");
-    fclose(file);
+    printf("floor server beendet\n");
     free(msgToManager);
     close(client_fd);
 }
@@ -205,7 +205,7 @@ void *start(void *floorArguments)
 {
     msgFromManagerToFloor *msgToFloor = (msgFromManagerToFloor *)malloc(sizeof(msgFromManagerToFloor));
 
-    fInfo *info = (fInfo *)malloc(sizeof(fInfo));
+    
     LinkedList *list = (LinkedList *)malloc(sizeof(LinkedList));
     constructLL(list);
 
@@ -221,9 +221,8 @@ void *start(void *floorArguments)
     pthread_t floorSubThread;
     pthread_create(&floorSubThread, NULL, floorMessageReceive, sub);
 
-    while (1)
+    for (size_t i = 0; i < 100; i++)
     {
-        // if (counterFloor < NO_APARTMENTS)
         if (true)
         {
             // sleep til Inter Arrival Time is over
@@ -235,10 +234,9 @@ void *start(void *floorArguments)
             counterFloor++;
             msg->mtype = 1;
             msg->floorID = floor->floorID;
-            // msg->floorID = 1;
-            // msg->noPeople = 1;
-            info->floorID = floor->floorID;
-            addRearLL(list, info);
+            person *personData = (person *)malloc(sizeof(person));
+            personData->spawnTime = clock();
+            addRearLL(list, personData);
             if (msgsnd(queue_id, msg, sizeof(floor_to_client), 0) == -1)
             {
                 perror("error: ");
@@ -257,28 +255,80 @@ void *start(void *floorArguments)
         // ToDo reduce counter by the number of people the elevator picked up
         // counter++;
     }
+    simulationRunning = false;
     pthread_join(floorSubThread, NULL);
     free(msg);
 }
 
 void *floorMessageReceive(void *args)
 {
+    
+
     msgFromManagerToFloor *msgToFloor = (msgFromManagerToFloor *)malloc(sizeof(msgFromManagerToFloor));
     subThreadStruct *floor = (subThreadStruct *)args;
-    fInfo *info = (fInfo *)malloc(sizeof(fInfo));
-    int current;
-    while (1)
+    LinkedList *list = floor->list;
+    person *personData = (person *)malloc(sizeof(person));
+
+    infoToLogger *logger = (infoToLogger *)malloc(sizeof(infoToLogger));
+
+    clock_t diff;
+    while (simulationRunning)
     {
 
-        if (msgrcv(queue_id_2, msgToFloor, sizeof(msgFromManagerToFloor), floor->floorID + 1, IPC_NOWAIT) >= 0)
+        if (msgrcv(queue_id_2, msgToFloor, sizeof(msgFromManagerToFloor), floor->floorID + 2, IPC_NOWAIT) >= 0)
         {
             // do something
-            info->noPeople = msgToFloor->noPeople;
-
-            addRearLL(floor->list, info);
+            // info->noPeople = msgToFloor->noPeople;
+            printf("msg from manager arrived: %d , %d\n", floor->floorID, msgToFloor->noPeople);
+            if(numbInLL(list) < msgToFloor->noPeople)  {
+                printf("error: people in list wrong\n");
+                exit(EXIT_FAILURE);
+            }
+            for (size_t i = 0; i < msgToFloor->noPeople; i++)
+            {
+                diff = clock() - list->head->value->spawnTime;
+                // printf("Time difference: %ld\n", diff);
+                // fprintf(file, "FloorID: %d\tTime difference: %ld\n", floor->floorID, diff/1000);
+                logger->mtype = 3;
+                logger->floorID = floor->floorID;
+                logger->timeDidd = diff;
+                msgsnd(queue_id, logger, sizeof(infoToLogger), 0);
+                deleteLL(list);
+            }
+            
+                
         }
     }
+    printf("floor msg rec beendet\n");
+    
     free(msgToFloor);
+}
+
+void* loggerThreadToFile() 
+{
+    infoToLogger *logger = (infoToLogger*)malloc(sizeof(infoToLogger));
+    remove("data.txt");
+    FILE *file;
+    file = fopen("data.txt", "w");
+    int counter;
+    clock_t sum;
+    if (file == NULL)
+    {
+        printf("error");
+    }
+    while(simulationRunning)
+    {
+        if(msgrcv(queue_id, logger, sizeof(infoToLogger), 3, IPC_NOWAIT) >= 0)
+        {
+            
+            sum += logger->timeDidd;
+            // printf("FloorId: %d\tTime difference: %ld\n", logger->floorID, logger->timeDidd);
+            fprintf(file, "FloorID: %d\tTime difference: %ld\n", logger->floorID, logger->timeDidd/1000);
+            counter++;
+        }
+    }
+    fprintf(file, "Total avg waiting time: %f\n", (double)(sum/counter));
+    fclose(file);
 }
 
 double clockToMillis(clock_t timeBegin, clock_t timeEnd)
