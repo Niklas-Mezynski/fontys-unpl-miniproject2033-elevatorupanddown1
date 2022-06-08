@@ -7,8 +7,8 @@ typedef struct
 {
     //char *timestapmt;
     int floorID;
-    // int noPeople;
-    // int waitingTime;
+    int noPeople;
+    int waitingTime;
 } fInfo;
 
 struct Snode

@@ -246,6 +246,7 @@ void *start(void *floorArguments)
             perror("error: ");
         }
         }
+        printLL(list);
         // printLL(list);
         // printf("counter: %d\n", counterFloor);
         pthread_mutex_unlock(&mutex);
@@ -266,6 +267,7 @@ void* floorMessageReceive(void* args)
 {
     msgFromManagerToFloor *msgToFloor = (msgFromManagerToFloor *)malloc(sizeof(msgFromManagerToFloor));
     subThreadStruct *floor = (subThreadStruct *)args;
+    fInfo *info = (fInfo*)malloc(sizeof(fInfo));
     int current;
     while (1)
     {
@@ -273,9 +275,9 @@ void* floorMessageReceive(void* args)
         if (msgrcv(queue_id_2, msgToFloor, sizeof(msgFromManagerToFloor), floor->floorID + 1, IPC_NOWAIT) >= 0)
         {
             //do something
-            // counterFloor = counterFloor - msgToFloor->noPeople;
-            // counterFloor = counterFloor - 1;
-            // printf("targetfloor: %d\n", msgToFloor->floorID);
+            info->noPeople = msgToFloor->noPeople;
+            
+            addRearLL(floor->list, info);
         }
     }
     free(msgToFloor);
