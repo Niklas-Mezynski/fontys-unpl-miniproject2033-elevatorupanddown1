@@ -1,7 +1,6 @@
 #ifndef __ELEVATOR
 #define __ELEVATOR
 
-#include "LL.h"
 
 #define MAX_PER_ELEVATOR 5
 #define ELEVATOR_SPEED 3 // meter per milliseconds
@@ -9,16 +8,19 @@
 
 typedef struct
 {
-    int arpartmentFloor;
-    int targetFloor;
-} guest;
+    int arpartmentFloor;    // The home floor of that person
+    int destFloor;        // The destination floor of that person
+} person;
+
+#include "LL.h"
 
 typedef struct
 {
     int id;
     double height;
     long nextTargetFloor; // -1 if no target
-    guest **guestsInside;
+    // person *guestsInside[MAX_PER_ELEVATOR];
+    LinkedList *guestList; // Persons inside the elevator (max. MAX_PER_ELEVATOR)
     pthread_t movement;
 } elevator;
 
@@ -49,11 +51,6 @@ struct messageThreadArgs
     LinkedList *targetFloorQueue;
     pthread_mutex_t *queue_lock;
 };
-/*
-    Thread function that is responsible for recieving for that elevator
-    - Argument(s): messageThreadArgs: Contains a struct with the args
-*/
-void recieve_messages(elevator *thisElevator, LinkedList *targetFloorQueue);
 
 /*
     This function moves the elevator up depending on the elevator speed and the last position update

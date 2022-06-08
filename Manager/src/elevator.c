@@ -49,6 +49,10 @@ void *start(void *thisElevatorArg)
     // constructLL(targetFloorQueue);
 
     printf("Hello from elevator %d\n", thisElevator->id);
+    pthread_mutex_lock(&mutex);
+    // Increase by one
+    changeElevatorsRunningValue(1);
+    pthread_mutex_unlock(&mutex);
 
     clock_t last_move;
     double targetFloorHeight;
@@ -68,93 +72,93 @@ void *start(void *thisElevatorArg)
         if (thisElevator->nextTargetFloor == -1)
         {
             // For logging
-            if (isMooving)
-            {
-                isMooving = false;
-                // Safe "idle start time"
-                msg_logger->info = StartIdle;
-                msg_logger->time = clock();
-                msgsnd(msg_queue_id, msg_logger, sizeof(logger_message) - sizeof(long), 0);
-            }
+            // if (isMooving)
+            // {
+            //     isMooving = false;
+            //     // Safe "idle start time"
+            //     msg_logger->info = StartIdle;
+            //     msg_logger->time = clock();
+            //     msgsnd(msg_queue_id, msg_logger, sizeof(logger_message) - sizeof(long), IPC_NOWAIT);
+            // }
+
+            // if (peopleInElevator(thisElevator) > 0)
+            // {
+            //     thisElevator->nextTargetFloor =
+            // }
 
             last_move = clock();
-            if (msgrcv(floor_queue_id, msg_from_manager, sizeof(manager_to_elevator) - sizeof(long), 0, IPC_NOWAIT) < 0)
+            if (msgrcv(floor_queue_id, msg_from_manager, sizeof(manager_to_elevator) - sizeof(long), 0, IPC_NOWAIT) >= 0)
+            {
+                // Set the target floor
+                // printf("Elevator recieved msg with msg type %ld\n", msg_from_manager->mtype);
+                thisElevator->nextTargetFloor = msg_from_manager->mtype - 2;
+                printf("Elevator %d target floor: %ld\n", thisElevator->id, thisElevator->nextTargetFloor);
+                targetFloorHeight = thisElevator->nextTargetFloor * FLOOR_HEIGHT;
+            }
+            else
             {
                 // No current target and no new messages
+                if (!isSimulationRunning())
+                {
+                    pthread_mutex_lock(&mutex);
+                    // Decrease by one and end loop
+                    changeElevatorsRunningValue(-1);
+                    pthread_mutex_unlock(&mutex);
+                    break;
+                }
                 continue;
             }
-            // Set the target floor
-            // printf("Elevator recieved msg with msg type %ld\n", msg_from_manager->mtype);
-            thisElevator->nextTargetFloor = msg_from_manager->mtype - 2;
-            // printf("Elevator %d target floor: %d\n", thisElevator->id, thisElevator->nextTargetFloor);
-            targetFloorHeight = thisElevator->nextTargetFloor * FLOOR_HEIGHT;
         }
 
         // For logging
-        if (!isMooving)
-        {
-            isMooving = true;
-            // Safe "idle end time" and send it to the logthread
-            msg_logger->info = StopIdle;
-            msg_logger->time = clock();
-            msgsnd(msg_queue_id, msg_logger, sizeof(logger_message) - sizeof(long), 0);
-        }
+        // if (!isMooving)
+        // {
+        //     isMooving = true;
+        //     // Safe "idle end time" and send it to the logthread
+        //     msg_logger->info = StopIdle;
+        //     msg_logger->time = clock();
+        //     msgsnd(msg_queue_id, msg_logger, sizeof(logger_message) - sizeof(long), 0);
+        // }
 
         // Check if the elevator is at it's target floor (+- 0.1 meter)
         if (thisElevator->nextTargetFloor != -1 && thisElevator->height > targetFloorHeight - 0.1 && thisElevator->height < targetFloorHeight + 0.1)
         {
             // Take all people from that floor and message the manager
-            pthread_mutex_lock(&mutex);
+            // pthread_mutex_lock(&mutex);
             pickupPeople(thisElevator, thisElevator->nextTargetFloor);
-            pthread_mutex_unlock(&mutex);
+            // pthread_mutex_unlock(&mutex);
 
             // Update the values of the elevator
             thisElevator->height = targetFloorHeight;
             thisElevator->nextTargetFloor = -1;
 
             // Sleep for 3 "seconds" (time people need to quit the elevator)
-            usleep(3 * MILLI_TO_MICRO);
+            // usleep(3 * MILLI_TO_MICRO);
             last_move = clock();
             continue;
         }
 
-        int interruptFloor = checkForInterruptionFloor(thisElevator);
-        if (interruptFloor != -1)
-        {
-            // Deacceleration time
-            usleep(3 * MILLI_TO_MICRO);
-            thisElevator->height = interruptFloor * FLOOR_HEIGHT;
-            // Pickup the people
-            pthread_mutex_lock(&mutex);
-            pickupPeople(thisElevator, interruptFloor);
-            pthread_mutex_unlock(&mutex);
+        // int interruptFloor = checkForInterruptionFloor(thisElevator);
+        // if (interruptFloor != -1)
+        // {
+        //     // Deacceleration time
+        //     usleep(3 * MILLI_TO_MICRO);
+        //     thisElevator->height = interruptFloor * FLOOR_HEIGHT;
+        //     // Pickup the people
+        //     pthread_mutex_lock(&mutex);
+        //     pickupPeople(thisElevator, interruptFloor);
+        //     pthread_mutex_unlock(&mutex);
 
-            // Sleep for 3 "seconds" (time people need to quit the elevator)
-            usleep(3 * MILLI_TO_MICRO);
-            last_move = clock();
-        }
+        //     // Sleep for 3 "seconds" (time people need to quit the elevator)
+        //     usleep(3 * MILLI_TO_MICRO);
+        //     last_move = clock();
+        // }
 
         // Move the elevator to
         moveElevator(thisElevator, &last_move);
         // printf("Elevator height: %f\n", thisElevator->height);
     }
     free(msg_from_manager);
-}
-
-void recieve_messages(elevator *thisElevator, LinkedList *targetFloorQueue)
-{
-
-    // Struct for incoming messages
-    manager_to_elevator *msg = (manager_to_elevator *)malloc(sizeof(manager_to_elevator));
-
-    // Check for new messages
-    while (msgrcv(floor_queue_id, msg, sizeof(manager_to_elevator) - sizeof(long), (thisElevator->id + 1), IPC_NOWAIT) >= 0)
-    {
-        // While there are messages, add them to the target floor queue
-        addRearLL(targetFloorQueue, msg->mtype);
-    }
-    // No (more) new messages --> return
-    free(msg);
 }
 
 void moveElevator(elevator *thisElevator, clock_t *last_move)
@@ -199,13 +203,7 @@ int checkForInterruptionFloor(elevator *elevator)
 
 int peopleInElevator(elevator *elevator)
 {
-    int amount = 0;
-    for (int i = 0; i < MAX_PER_ELEVATOR; i++)
-    {
-        if (elevator->guestsInside[i] != NULL)
-            amount++;
-    }
-    return amount;
+    return numbInLL(elevator->guestList);
 }
 
 int calcNextReachableFloor(elevator *elevator)

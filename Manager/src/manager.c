@@ -16,9 +16,11 @@
 #include <sys/ipc.h>
 #include "manager.h"
 #include "elevator.h"
+#include "LL.h"
 
 clock_t start_t;
 elevator *elevators[NO_ELEVATORS];
+int elevatorsRunning = 0;
 pthread_t elevator_threads[NO_ELEVATORS];
 pthread_t manager_thread, logger_thread;
 int floor_queue_id, msg_queue_id;
@@ -48,17 +50,18 @@ void startManager()
 
     // Start the manager thread
     pthread_create(&manager_thread, NULL, managerLoop, NULL);
-    // Start the manager thread
-    pthread_create(&logger_thread, NULL, loggerThread, NULL);
 
     // Start the elevators (and it's threads)
     initialzeElevators();
 
+    // Start the manager thread
+    pthread_create(&logger_thread, NULL, loggerThread, NULL);
+
     // Wait for the elevator threads to finish
-    // for (int i = 0; i < NO_ELEVATORS; i++)
-    // {
-    //     pthread_join(elevator_threads[i], NULL);
-    // }
+    for (int i = 0; i < NO_ELEVATORS; i++)
+    {
+        pthread_join(elevator_threads[i], NULL);
+    }
     // Wait for the manager thread
     pthread_join(manager_thread, NULL);
     pthread_join(logger_thread, NULL);
@@ -66,12 +69,14 @@ void startManager()
 
 void *managerLoop()
 {
-    /*
+    // /*
     // For the client connection
     int client_socket;
     ssize_t recv_size;
     // For mesages recieved from the client socket sent by the floors
     client_to_manager *rec_msg_floor = (client_to_manager *)malloc(sizeof(client_to_manager));
+    // For mesage sending to the client socket
+    manager_to_client *send_msg_floor = (manager_to_client *)malloc(sizeof(manager_to_client));
     // For mesages recieved from the message queue sent by the elevator
     elevator_to_manager *rec_msg_elevator = (elevator_to_manager *)malloc(sizeof(elevator_to_manager));
     // For mesages that need to be send to the elevator over the msg_queue
@@ -81,49 +86,75 @@ void *managerLoop()
     initServer(&client_socket);
 
     // Manager loop -> loops until the day is over and constantly handles the message traffic between floors and elevators
-    while (1)
+    while (simulationIsRunning)
     {
         // Recieve data from the floor socket
         if ((recv_size = recv(client_socket, rec_msg_floor, sizeof(client_to_manager), 0)) < 0)
             error_exit("Message recieve error");
-
-        // Do something with the data (for now, just print it)
+        if (recv_size == 0)
+        {
+            printf("Client disconnected... shutting down program\n");
+            {
+                simulationIsRunning = false;
+            }
+        }
+        // Send the recieved data to the elevators
         if (recv_size > 0)
         {
-            printf("Client message: %d\t%d\n", rec_msg_floor->floorID, rec_msg_floor->noPeople);
+            printf("Client recieved message - spawn event on floor %d\n", rec_msg_floor->floorID);
             // Put the new target in the msg_queue so the elevators know they have to pick up people from there
-            send_msg_elevator->mtype = rec_msg_floor->floorID;
-            peoplePerFloor[rec_msg_floor->floorID] += rec_msg_floor->noPeople;
-            if (msgsnd(floor_queue_id, send_msg_elevator, sizeof(manager_to_elevator) - sizeof(long), 0) < 0)
+            send_msg_elevator->mtype = (rec_msg_floor->floorID + 2);
+            send_msg_elevator->destFloor = 0;
+            pthread_mutex_lock(&mutex);
+            peoplePerFloor[rec_msg_floor->floorID]++;
+            pthread_mutex_unlock(&mutex);
+            if (msgsnd(floor_queue_id, send_msg_elevator, sizeof(manager_to_elevator) - sizeof(long), IPC_NOWAIT) < 0)
             {
                 error_exit("Manager: Cannot send message to elevator msg_queue");
             }
         }
 
-        // Check for incoming messages by the elevator
-        if (checkIncomingMsgs(rec_msg_elevator))
-        {
-            // Do something with the message (send it to the floor)
-            // TODO
-        }
+        // Check for incoming messages from the elevators
+        // if (checkIncomingMsgs(rec_msg_elevator))
+        // {
+        //     // Do something with the message (send it to the floor)
+        //     // TODO
+        //     send_msg_floor->floorID = rec_msg_elevator->floor;
+        //     send_msg_floor->noPeopleInElevator = 1;
+        //     if (send(client_socket, send_msg_floor, sizeof(manager_to_client), 0) < 0)
+        //     {
+        //         error_exit("Send message to client socket error");
+        //     }
+        // }
     }
+
+    sleep(3);
+    pthread_mutex_lock(&mutex);
+    for (int j = 0; j < NO_FLOORS; j++)
+    {
+        printf("Remaining ppl at floor %d: %d\n", j, peoplePerFloor[j]);
+    }
+    pthread_mutex_unlock(&mutex);
+    struct msqid_ds snens;
+    msgctl(floor_queue_id, IPC_STAT, &snens);
+    printf("No of messages still in queue %ld\n", snens.msg_qnum);
 
     // Close the connection
     close(client_socket);
     free(rec_msg_floor);
     free(rec_msg_elevator);
     return EXIT_SUCCESS;
-    */
+    // */
 
-    // /*
+    /*
     // For testing/debugging -> randomly send messages to the elevators
 
     manager_to_elevator *msg = (manager_to_elevator *)malloc(sizeof(manager_to_elevator));
     elevator_to_manager *rec_msg_elevator = (elevator_to_manager *)malloc(sizeof(elevator_to_manager));
     usleep(100 * MILLI_TO_MICRO);
-    for (size_t i = 0; i < 20; i++)
+    for (size_t i = 0; i < 256; i++)
     {
-        usleep((rand() % 5 + 5) * MILLI_TO_MICRO);
+        usleep(((rand() % 3000 / 1000)) * MILLI_TO_MICRO);
         // Check for incoming messages by the
         if (checkIncomingMsgs(rec_msg_elevator))
         {
@@ -134,15 +165,18 @@ void *managerLoop()
         // if (rand() % 10 != 0)
         //     continue;
         // Sometimes, randomly spawn a person on a random floor
-        long targetFloor = (rand() % NO_FLOORS);
-        msg->mtype = targetFloor + 2;
-        peoplePerFloor[targetFloor]++;
-        printf("Sending msg for floor %ld\n", targetFloor);
+        long spawnFloor = ((rand()) % (NO_FLOORS - 1)) + 1;
+        msg->mtype = spawnFloor + 2;
+        msg->destFloor = 0; // For now everybody's destination is floor 0;
+        pthread_mutex_lock(&mutex);
+        peoplePerFloor[spawnFloor]++;
+        pthread_mutex_unlock(&mutex);
+        printf("Spawning someone on floor %ld with dest: %d\n", spawnFloor, msg->destFloor);
 
         // printf("People spawning at floor %ld \t\t\t\t%f\n", msg->mtype - 1, clockToMillis(0, clock()));
-        if (msgsnd(floor_queue_id, msg, sizeof(manager_to_elevator) - sizeof(long), 0) == -1)
+        if (msgsnd(floor_queue_id, msg, sizeof(manager_to_elevator) - sizeof(long), IPC_NOWAIT) == -1)
         {
-            error_exit("Message send error");
+            error_exit("Message queue floor_queue_id full");
             // perror("Message send error");
             // exit(1);
         }
@@ -162,7 +196,7 @@ void *managerLoop()
     //     usleep(25 * MILLI_TO_MICRO);
     // }
 
-    sleep(3);
+    sleep(5);
     for (int j = 0; j < NO_FLOORS; j++)
     {
         printf("Remaining ppl at floor %d: %d\n", j, peoplePerFloor[j]);
@@ -171,7 +205,7 @@ void *managerLoop()
     free(msg);
     simulationIsRunning = false;
     return EXIT_SUCCESS;
-    // */
+    */
 }
 
 bool checkIncomingMsgs(elevator_to_manager *msg_out)
@@ -187,15 +221,25 @@ bool checkIncomingMsgs(elevator_to_manager *msg_out)
 
 void initialzeElevators()
 {
-    // Create the elevator structs and store them in the elevators array
+    // Create and init the elevator structs and store them in the elevators array
     for (int i = 0; i < NO_ELEVATORS; i++)
     {
         elevators[i] = (elevator *)malloc(sizeof(elevator));
         elevators[i]->id = i;
-        elevators[i]->height = 9;                                                        // Starting floor is always 0
-        elevators[i]->nextTargetFloor = -1;                                              // No target
-        elevators[i]->guestsInside = (guest **)malloc(MAX_PER_ELEVATOR * sizeof(guest)); // Allocate memory for the array of guests inside
+        elevators[i]->height = 9;           // Starting floor is always 0
+        elevators[i]->nextTargetFloor = -1; // No target
 
+        // Set all person pointers to NULL
+        // for (int j = 0; j < MAX_PER_ELEVATOR; j++)
+        // {
+        //     elevators[i]->guestsInside[j] = NULL;
+        // }
+        elevators[i]->guestList = (LinkedList *)malloc(sizeof(LinkedList));
+        constructLL(elevators[i]->guestList);
+    }
+
+    for (int i = 0; i < NO_ELEVATORS; i++)
+    {
         // Create the threads
         pthread_create(&elevator_threads[i], NULL, start, elevators[i]);
     }
@@ -258,35 +302,28 @@ void pickupPeople(elevator *elevator, long floor)
     printf("Elevator %d is now picking up people from floor %ld\t%f\n", elevator->id, floor, clockToMillis(0, clock()));
 
     // Pick up the guy
+    pthread_mutex_lock(&mutex);
     peoplePerFloor[floor]--;
+    pthread_mutex_unlock(&mutex);
     elevator_to_manager *msg_to_manager = (elevator_to_manager *)malloc(sizeof(elevator_to_manager));
-    msg_to_manager->mtype = ELEVATOR_TO_MANAGER_MTYPE; // 1 for msg_to_manager
+    msg_to_manager->mtype = ELEVATOR_TO_MANAGER_MTYPE;
     msg_to_manager->floor = floor;
     // Send the event to the msg queue
     msgsnd(msg_queue_id, msg_to_manager, sizeof(elevator_to_manager) - sizeof(long), 0);
 
     // Check if there are more people on the floor that can be picked up
     manager_to_elevator *msg_from_manager = (manager_to_elevator *)malloc(sizeof(manager_to_elevator));
-    while (peopleInElevator(elevator) < MAX_PER_ELEVATOR && msgrcv(floor_queue_id, msg_from_manager, sizeof(manager_to_elevator) - sizeof(long), floor + 2, IPC_NOWAIT) >= 0)
-    {
-        if (peoplePerFloor[floor] < 1)
-        {
-            printf("pickupPeople error: there are no people on that floor\n");
-            exit(EXIT_FAILURE);
-        }
-        printf("Elevator %d is now picking up people from floor %ld\t%f\n", elevator->id, floor, clockToMillis(0, clock()));
+    // while (peopleInElevator(elevator) < MAX_PER_ELEVATOR && msgrcv(floor_queue_id, msg_from_manager, sizeof(manager_to_elevator) - sizeof(long), floor + 2, IPC_NOWAIT) >= 0)
+    // {
+    //     if (peoplePerFloor[floor] < 1)
+    //     {
+    //         printf("pickupPeople error: there are no people on that floor\n");
+    //         exit(EXIT_FAILURE);
+    //     }
+    //     printf("Elevator %d is now picking up people from floor %ld\t%f\n", elevator->id, floor, clockToMillis(0, clock()));
 
-        peoplePerFloor[floor]--;
-        msgsnd(msg_queue_id, msg_to_manager, sizeof(elevator_to_manager) - sizeof(long), 0);
-    }
-    // printf("SNENS\n");
-    // if (msgrcv(floor_queue_id, msg_from_manager, sizeof(manager_to_elevator) - sizeof(long), floor + 1, IPC_NOWAIT) < 0)
-    // {
-    //     printf("NOPE\n");
-    // }
-    // else
-    // {
-    //     printf("YEP\n");
+    //     peoplePerFloor[floor]--;
+    //     msgsnd(msg_queue_id, msg_to_manager, sizeof(elevator_to_manager) - sizeof(long), 0);
     // }
 
     free(msg_to_manager);
@@ -342,7 +379,7 @@ void *loggerThread()
     }
 
     logger_message *msg = (logger_message *)malloc(sizeof(logger_message));
-    while (simulationIsRunning)
+    while (elevatorsRunning > 0)
     {
         // Check for new information to log
         if (msgrcv(msg_queue_id, msg, sizeof(logger_message) - sizeof(long), LOGGER_THREAD_MTYPE, IPC_NOWAIT) >= 0)
@@ -373,15 +410,24 @@ void *loggerThread()
     for (int elevator_id = 0; elevator_id < NO_ELEVATORS; elevator_id++)
     {
         double avg = (double)totalWaitingTimes[elevator_id] / elevatorIdleCounts[elevator_id];
-        fprintf(file, "Elevator %d total waiting time %ld | Number of idles %d | Avg idle time %f\n", elevator_id, totalWaitingTimes[elevator_id], elevatorIdleCounts[elevator_id], avg);
+        fprintf(file, "Elevator %d total idle time %ld | Number of idles %d | Avg idle time %f\n", elevator_id, totalWaitingTimes[elevator_id], elevatorIdleCounts[elevator_id], avg);
     }
 
     fprintf(file, "\n----TOTAL IDLE TIMES (devided by 1000)----\n");
     for (int elevator_id = 0; elevator_id < NO_ELEVATORS; elevator_id++)
     {
         double avg = (double)totalWaitingTimes[elevator_id] / elevatorIdleCounts[elevator_id];
-        fprintf(file, "Elevator %d total waiting time %ld | Number of idles %d | Avg idle time %f\n", elevator_id, totalWaitingTimes[elevator_id] / 1000, elevatorIdleCounts[elevator_id], avg / 1000);
+        fprintf(file, "Elevator %d total idle time %ld | Number of idles %d | Avg idle time %f\n", elevator_id, totalWaitingTimes[elevator_id] / 1000, elevatorIdleCounts[elevator_id], avg / 1000);
     }
 
     fclose(file);
+}
+
+void changeElevatorsRunningValue(int val)
+{
+    elevatorsRunning += val;
+}
+bool isSimulationRunning()
+{
+    return isSimulationRunning;
 }

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include "elevator.h"
 #include "LL.h"
 
 void constructLL(LinkedList *list)
@@ -19,28 +20,28 @@ void printLL(LinkedList *list)
     while (current != NULL)
     {
         i++;
-        printf("%d. Element in the list: %d\n", i, current->value);
+        printf("%d. Person in the list: appartment: %d | dest: %d\n", i, current->value->arpartmentFloor, current->value->destFloor);
         current = current->next;
     }
 }
 
-void addFrontLL(LinkedList *list, int number)
+void addFrontLL(LinkedList *list, person *item)
 {
     node *newNode;
     newNode = (node *)malloc(sizeof(node));
 
-    newNode->value = number;
+    newNode->value = item;
     newNode->next = list->head;
     list->head = newNode;
 }
 
-void addRearLL(LinkedList *list, int number)
+void addRearLL(LinkedList *list, person *item)
 {
     node *tail = list->head;
     node *current = list->head;
     if (current == NULL)
     {
-        addFrontLL(list, number);
+        addFrontLL(list, item);
         return;
     }
     while (current->next != NULL)
@@ -52,7 +53,7 @@ void addRearLL(LinkedList *list, int number)
     node *newNode;
     newNode = (node *)malloc(sizeof(node));
 
-    newNode->value = number;
+    newNode->value = item;
     newNode->next = tail->next;
     tail->next = newNode;
 }
@@ -98,16 +99,32 @@ void destructLL(LinkedList *list)
     free(current);
 }
 
+person *peekFront(LinkedList *list)
+{
+    if (list->head != NULL)
+    {
+        return list->head->value;
+    }
+    return NULL;
+}
+
 // Deletes the front element
-void deleteLL(LinkedList *list)
+bool deleteFrontLL(LinkedList *list)
 {
     if (list->head->next != NULL)
     {
-        node* toRemove = list->head;
+        node *toRemove = list->head;
         list->head = toRemove->next;
+        free(toRemove->value);
         free(toRemove);
-    } else
-    {
-        list->head = NULL;
+        return true;
     }
+    list->head = NULL;
+    return false;
+}
+
+int deleteAllByDestFloorLL(LinkedList *list, person *item)
+{
+    printf("LL deleteAllByDestFloorLL not implemented yet\n");
+    exit(EXIT_FAILURE);
 }

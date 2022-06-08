@@ -28,20 +28,20 @@
 
 typedef struct
 {
-    long mtype; // message type, must be > 0, indicates the target floor + 1
-                // can add other attributes
+    long mtype;     // message type, must be > 1, indicates the floor where someone spawned + 2
+    int destFloor;  // The destination floor of that person
 } manager_to_elevator;
 
 typedef struct
 {
-    long mtype; // message type, must be > 0, contains the id + 1 of the floor where people are waiting
-    int floor;  // The floor the elevator should move to next
+    long mtype; // message type = ELEVATOR_TO_MANAGER_MTYPE to specify which struct to recieve
+    int floor;  // The floor on which the elevator picked up someone
 } elevator_to_manager;
 
 typedef enum
 {
     StartIdle,  // An elevator starts to idle
-    StopIdle     // An elevator starts to move again (stop idling)
+    StopIdle    // An elevator starts to move again (stop idling)
 } LoggerInfo;
 
 // Server message transfer from client to the manager
@@ -59,6 +59,12 @@ typedef struct
     int floorID;
     int noPeople;
 } client_to_manager;
+
+typedef struct 
+{
+    int floorID;            // From which floor the elevator picks up people
+    int noPeopleInElevator; // How many people the elevator picks up
+} manager_to_client;
 
 
 /*
@@ -100,6 +106,16 @@ bool checkIncomingMsgs(elevator_to_manager *msg_out);
 // Not implemented yet
 void handleMessage();
 
+
+
+int getCurrentTicks();
+
+void pickupPeople(elevator *elevator, long floor);
+
+void *loggerThread();
+
+// --- Helpers ---
+
 /*
     Prints the error_message to the console and exits the program
 */
@@ -107,10 +123,7 @@ void error_exit(char *error_message);
 
 double clockToMillis(clock_t timeBegin, clock_t timeEnd);
 
-int getCurrentTicks();
-
-void pickupPeople(elevator *elevator, long floor);
-
-void *loggerThread();
+void changeElevatorsRunningValue(int val);
+bool isSimulationRunning();
 
 #endif

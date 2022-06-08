@@ -21,8 +21,8 @@ typedef struct
 
 typedef struct 
 {
-    int floorID;
-    int noPeopleInElevator;
+    int floorID;            // From which floor the elevator picks up people
+    int noPeopleInElevator; // How many people the elevator picks up
 } manager_to_client;
 
 // typedef struct
