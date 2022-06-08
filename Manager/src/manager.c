@@ -123,17 +123,16 @@ void *managerLoop()
         }
 
         // Check for incoming messages from the elevators
-        // if (checkIncomingMsgs(rec_msg_elevator))
-        // {
-        //     // Do something with the message (send it to the floor)
-        //     // TODO
-        //     send_msg_floor->floorID = rec_msg_elevator->floor;
-        //     send_msg_floor->noPeopleInElevator = 1;
-        //     if (send(client_socket, send_msg_floor, sizeof(manager_to_client), 0) < 0)
-        //     {
-        //         error_exit("Send message to client socket error");
-        //     }
-        // }
+        if (checkIncomingMsgs(rec_msg_elevator))
+        {
+            // Do something with the message (send it to the floor)
+            send_msg_floor->floorID = rec_msg_elevator->floor;
+            send_msg_floor->noPeopleInElevator = 1;
+            if (send(client_socket, send_msg_floor, sizeof(manager_to_client), IPC_NOWAIT) < 0)
+            {
+                error_exit("Send message to client socket error");
+            }
+        }
     }
 
     // Close the connection
@@ -310,18 +309,21 @@ void pickupPeople(elevator *elevator, long floor)
 
     // Check if there are more people on the floor that can be picked up
     manager_to_elevator *msg_from_manager = (manager_to_elevator *)malloc(sizeof(manager_to_elevator));
-    // while (peopleInElevator(elevator) < MAX_PER_ELEVATOR && msgrcv(floor_queue_id, msg_from_manager, sizeof(manager_to_elevator) - sizeof(long), floor + 2, IPC_NOWAIT) >= 0)
-    // {
-    //     if (peoplePerFloor[floor] < 1)
-    //     {
-    //         printf("pickupPeople error: there are no people on that floor\n");
-    //         exit(EXIT_FAILURE);
-    //     }
-    //     printf("Elevator %d is now picking up people from floor %ld\t%f\n", elevator->id, floor, clockToMillis(0, clock()));
+    while (peopleInElevator(elevator) < MAX_PER_ELEVATOR && msgrcv(floor_queue_id, msg_from_manager, sizeof(manager_to_elevator) - sizeof(long), floor + 2, IPC_NOWAIT) >= 0)
+    {
+        if (peoplePerFloor[floor] < 1)
+        {
+            printf("pickupPeople error: there are no people on that floor\n");
+            exit(EXIT_FAILURE);
+        }
+        printf("Elevator %d is now picking up people from floor %ld\t%f\n", elevator->id, floor, clockToMillis(0, clock()));
 
-    //     peoplePerFloor[floor]--;
-    //     msgsnd(msg_queue_id, msg_to_manager, sizeof(elevator_to_manager) - sizeof(long), 0);
-    // }
+        // Reduce people count
+        pthread_mutex_lock(&mutex);
+        peoplePerFloor[floor]--;
+        pthread_mutex_unlock(&mutex);
+        msgsnd(msg_queue_id, msg_to_manager, sizeof(elevator_to_manager) - sizeof(long), 0);
+    }
 
     free(msg_to_manager);
     free(msg_from_manager);
