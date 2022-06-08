@@ -45,7 +45,8 @@ pthread_mutex_t mutex;
 void startFloors()
 {
     initializeSocket();
-    // queue_id = msgget(QUEUE_ID, IPC_CREAT | 0600);
+    queue_id = msgget(QUEUE_ID, IPC_CREAT | 0600);
+    queue_id_2 = msgget(QUEUE_ID_2, IPC_CREAT | 0600);
     //  printf("problem");
     pthread_create(&serverThread, NULL, floorServer, NULL);
     pthread_create(&clientThread, NULL, floorClient, NULL);

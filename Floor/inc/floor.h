@@ -3,7 +3,8 @@
 
 #include "LL_Floor.h"
 
-#define QUEUE_ID 1
+#define QUEUE_ID 7
+#define QUEUE_ID_2 12
 #define MILLI_TO_MICRO 1000
 
 //struct for each floor
