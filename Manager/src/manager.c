@@ -65,6 +65,14 @@ void startManager()
     // Wait for the manager thread
     pthread_join(manager_thread, NULL);
     pthread_join(logger_thread, NULL);
+
+    // Print remainng No of people on each floor
+    for (int j = 0; j < NO_FLOORS; j++)
+    {
+        printf("Remaining ppl at floor %d: %d\n", j, peoplePerFloor[j]);
+    }
+
+    pthread_mutex_destroy(&mutex);
 }
 
 void *managerLoop()
@@ -127,17 +135,6 @@ void *managerLoop()
         //     }
         // }
     }
-
-    sleep(3);
-    pthread_mutex_lock(&mutex);
-    for (int j = 0; j < NO_FLOORS; j++)
-    {
-        printf("Remaining ppl at floor %d: %d\n", j, peoplePerFloor[j]);
-    }
-    pthread_mutex_unlock(&mutex);
-    struct msqid_ds snens;
-    msgctl(floor_queue_id, IPC_STAT, &snens);
-    printf("No of messages still in queue %ld\n", snens.msg_qnum);
 
     // Close the connection
     close(client_socket);
@@ -385,6 +382,7 @@ void *loggerThread()
         if (msgrcv(msg_queue_id, msg, sizeof(logger_message) - sizeof(long), LOGGER_THREAD_MTYPE, IPC_NOWAIT) >= 0)
         {
             // There is a new info
+
             switch (msg->info)
             {
             case StartIdle:
@@ -392,6 +390,14 @@ void *loggerThread()
                 elevatorStartTimes[msg->elevator_id] = msg->time;
                 break;
             case StopIdle:
+                // Ignore first idle time
+                if (elevatorIdleCounts[msg->elevator_id] == 0)
+                {
+                    elevatorIdleCounts[msg->elevator_id]++;
+                    totalWaitingTimes[msg->elevator_id] += 50000;
+                    continue;
+                }
+
                 // Elevator stops idling -> calc complete idle time and add for average
                 totalWaitingTimes[msg->elevator_id] += msg->time - elevatorStartTimes[msg->elevator_id];
                 elevatorIdleCounts[msg->elevator_id]++;
@@ -429,5 +435,5 @@ void changeElevatorsRunningValue(int val)
 }
 bool isSimulationRunning()
 {
-    return isSimulationRunning;
+    return simulationIsRunning;
 }

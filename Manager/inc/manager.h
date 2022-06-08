@@ -6,7 +6,7 @@
 #include "elevator.h"
 
 // General case defs
-#define NO_ELEVATORS 1
+#define NO_ELEVATORS 2
 #define NO_FLOORS 10
 #define NO_APPS_PER_FLOOR 10
 

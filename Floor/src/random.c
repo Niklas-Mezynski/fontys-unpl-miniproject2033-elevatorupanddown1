@@ -19,7 +19,7 @@ int nexp() {
     double rnd;
 
     rnd = (double) (rand()%1000) / 1000; // rnd element of [0, 1]
-    newIAT = -1000000*(log(rnd)/lambda); // calculation of newIAT (-log(rnd)/lambda), in microseconds
-    return (int)newIAT;
+    newIAT = -1000*(log(rnd)/lambda); // calculation of newIAT (-log(rnd)/lambda), in microseconds
+    return (int)(newIAT * 60);
 }
 

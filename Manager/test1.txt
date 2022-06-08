@@ -1,17 +1,33 @@
-Elevator 0 just idled for 210600
-Elevator 0 just idled for 3
-Elevator 0 just idled for 2
-Elevator 0 just idled for 3
-Elevator 0 just idled for 2
-Elevator 0 just idled for 3
-Elevator 0 just idled for 2
-Elevator 0 just idled for 2
-Elevator 0 just idled for 3
-Elevator 0 just idled for 2
-Elevator 0 just idled for 3
+Elevator 1 just idled for 168072
+Elevator 1 just idled for 73759
+Elevator 1 just idled for 183889
+Elevator 0 just idled for 1091165
+Elevator 1 just idled for 331066
+Elevator 0 just idled for 159673
+Elevator 0 just idled for 30046
+Elevator 1 just idled for 320445
+Elevator 0 just idled for 412335
+Elevator 0 just idled for 26
+Elevator 0 just idled for 228869
+Elevator 1 just idled for 371495
+Elevator 1 just idled for 171352
+Elevator 1 just idled for 248229
+Elevator 0 just idled for 813959
+Elevator 1 just idled for 497221
+Elevator 1 just idled for 72785
+Elevator 1 just idled for 94724
+Elevator 0 just idled for 1076341
+Elevator 1 just idled for 387961
+Elevator 0 just idled for 95684
+Elevator 0 just idled for 315577
+Elevator 0 just idled for 633270
+Elevator 1 just idled for 1246487
+Elevator 0 just idled for 1299908
 
 ----TOTAL IDLE TIMES----
-Elevator 0 total waiting time 210625 | Number of idles 11 | Avg idle time 19147.727273
+Elevator 0 total idle time 6206853 | Number of idles 13 | Avg idle time 477450.230769
+Elevator 1 total idle time 4217485 | Number of idles 14 | Avg idle time 301248.928571
 
 ----TOTAL IDLE TIMES (devided by 1000)----
-Elevator 0 total waiting time 210 | Number of idles 11 | Avg idle time 19.147727
+Elevator 0 total idle time 6206 | Number of idles 13 | Avg idle time 477.450231
+Elevator 1 total idle time 4217 | Number of idles 14 | Avg idle time 301.248929
