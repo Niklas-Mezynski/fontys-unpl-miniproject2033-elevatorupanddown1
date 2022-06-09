@@ -159,7 +159,9 @@ void *floorClient()
             }
         }
     }
-    printf("floorclient beendet\n");
+    // printf("floorclient beendet\n");
+    free(msgFromManager);
+    free(msgToFloor);
 }
 
 void *floorServer()
@@ -197,8 +199,9 @@ void *floorServer()
     // printLL(floorRecord);
     // printf("messages send\n");
     printf("floor server beendet\n");
-    free(msgToManager);
     close(client_fd);
+    free(msgToManager);
+    free(msg);
 }
 
 void *start(void *floorArguments)
@@ -258,6 +261,8 @@ void *start(void *floorArguments)
     simulationRunning = false;
     pthread_join(floorSubThread, NULL);
     free(msg);
+    free(msgToFloor);
+    free(floor);
 }
 
 void *floorMessageReceive(void *args)
@@ -302,6 +307,8 @@ void *floorMessageReceive(void *args)
     printf("floor msg rec beendet\n");
     
     free(msgToFloor);
+    free(personData);
+    // free(logger);
 }
 
 void* loggerThreadToFile() 
@@ -329,6 +336,7 @@ void* loggerThreadToFile()
     }
     fprintf(file, "Total avg waiting time: %f\n", (double)(sum/counter));
     fclose(file);
+    free(logger);
 }
 
 double clockToMillis(clock_t timeBegin, clock_t timeEnd)
